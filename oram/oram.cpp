@@ -51,7 +51,7 @@ Block ORAM::read(unsigned int addr) {
   return *b;
 }
 
-void ORAM::write(unsigned int addr, char data[BLOCK_SIZE]) {
+int ORAM::write(unsigned int addr, char data[BLOCK_SIZE], char metadata[METADATA_SIZE]) {
   Block *b = NULL;
 
   // lookup path containing address -> TODO recursive ORAM?
@@ -65,6 +65,7 @@ void ORAM::write(unsigned int addr, char data[BLOCK_SIZE]) {
     if(it->addr == addr) {
       b = &(*it);
       memcpy(b->data, data, BLOCK_SIZE);
+      memcpy(b->metadata, metadata, METADATA_SIZE);
       break;
     }
   }
@@ -79,6 +80,7 @@ void ORAM::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
   // write blocks from the stash back to the path
   dump_stash(leaf_idx);
+  return leaf_idx;
 }
 
 void ORAM::traverse_path(unsigned int leaf_idx) {

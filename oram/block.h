@@ -3,6 +3,7 @@
 #define BLOCK_H
 
 #define BLOCK_SIZE 1024
+#define METADATA_SIZE 16
 
 class Block {
  public:
@@ -11,6 +12,7 @@ class Block {
   unsigned int addr;
   unsigned int leaf_idx;
   char data[BLOCK_SIZE];
+  char metadata[METADATA_SIZE];
 };
 
 #endif

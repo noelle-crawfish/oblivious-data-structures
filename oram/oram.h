@@ -1,3 +1,7 @@
+
+#ifndef ORAM_H
+#define ORAM_H
+
 #include <map>
 #include <vector>
 
@@ -21,7 +25,7 @@ class ORAM {
  public:
   ORAM();
   Block read(unsigned int addr);
-  void write(unsigned int addr, char data[BLOCK_SIZE]);
+  int write(unsigned int addr, char data[BLOCK_SIZE], char metadata[METADATA_SIZE]);
  private:
   Node *root;
  std::map<unsigned int, unsigned int> mappings;
@@ -36,3 +40,5 @@ class ORAM {
 };
 
 void dump_blocks(Bucket *to, Bucket *from);
+
+#endif
