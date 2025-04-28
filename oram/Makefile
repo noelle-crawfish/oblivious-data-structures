@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -O2
+CXXFLAGS = -std=c++23 -Wall -Wextra -O2 -I ../rpclib/include ../rpclib/build/librpc.a
 
 # Files
 # SRC = main.cpp 

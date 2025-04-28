@@ -17,7 +17,9 @@ class ObliviousMap : public ORAM {
  private:
   MapMetadata parse_metadata(char *buf);
   void serialize_metadata(char *buf, MapMetadata m);
+
   unsigned int root_leaf;
+  unsigned int root_addr;
 };
 
 #endif

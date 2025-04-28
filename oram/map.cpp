@@ -4,6 +4,8 @@
 
 template<typename K, typename V>
 ObliviousMap<K, V>::ObliviousMap() {
+  // ctr = 0;
+  root_addr = 0;
   root_leaf = N_LEAVES; // invalid value to represent "empty"
 }
 
@@ -11,7 +13,8 @@ template<typename K, typename V>
 void ObliviousMap<K, V>::insert(K k, V v) {
 
 
-  unsigned int leaf_idx = std::rand() % N_LEAVES;
+  // unsigned int leaf_idx = std::rand() % N_LEAVES;
+  unsigned int leaf_idx = 0;
 
 
   if(root_leaf == N_LEAVES) {
