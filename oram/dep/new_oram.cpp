@@ -1,5 +1,7 @@
 #include "new_oram.h"
 
+#include <iostream>
+
 // TODO eventually move node here
 
 /* --------------------------------------------- */
@@ -13,6 +15,9 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
   server_addr.sin_addr.s_addr = INADDR_ANY; // server_ip; // INADDR_ANY? for testing...
 
   connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
+  
+  int flag = 1;
+  setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 
   mappings = std::map<unsigned int, unsigned int>();
 }
@@ -22,9 +27,7 @@ int ORAMClient::read(char *buf, unsigned int addr) {
   Block *b = NULL;
 
   unsigned int leaf_idx = mappings.at(addr);
-
-  // std::vector<Block> = get_blocks(unsigned int leaf_idx); -> TODO this should be an rpc call
-  // then add to stash
+  get_blocks(leaf_idx);
 
   for(auto it = stash.begin(); it != stash.end(); ++it) {
     // TODO need some decoding ot happen
@@ -50,9 +53,9 @@ int ORAMClient::read(char *buf, unsigned int addr) {
 
 void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
   Block *b = NULL;
-  unsigned int leaf_idx = mappings.at(addr);
+  unsigned int leaf_idx = mappings[addr]; // use [] instead of .at() in case this is first write
 
-  // RPC get blocks, add to stash -> what about response RPC add to stash by many RPC from .
+  get_blocks(leaf_idx);
 
   for(auto it = stash.begin(); it != stash.end(); ++it) {
     if(it->addr == addr) {
@@ -73,8 +76,21 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
 
 void ORAMClient::dump_stash(unsigned int leaf_idx) {
-  // TODO 
-  for(int level = 0; level < L; ++level) {
+  std::cout << "Dumping stash -- or am I? \n";
+  // char buf[sizeof(Cmd)];
+
+  Cmd cmd = {
+    .opcode = DUMP_STASH,
+    .block = Block(),
+    .leaf_idx = leaf_idx,
+  };
+  send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  // shutdown(client_socket, SHUT_WR); 
+
+  std::cout << "shutdown happened\n";
+
+  // for(int level = 0; level < L; ++level) {
+  for(int level = 0; level < L; ) {// ++level) {
     // TODO is level 0 bottom or top?
 
     // find up to Z blocks on_path_at_level(b->leaf_idx, leaf_idx, level);
@@ -95,6 +111,34 @@ unsigned int ORAMClient::random_leaf_idx() {
   return std::rand() % N_LEAVES;
 }
 
+void ORAMClient::get_blocks(unsigned int leaf_idx) {
+  std::cout << "Asking for blocks\n";
+  char buf[sizeof(Cmd)];
+
+  Cmd cmd = {
+    .opcode = GET_BLOCKS,
+    .leaf_idx = leaf_idx,
+  };
+  send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  // shutdown(client_socket, SHUT_WR); 
+
+  for(int level = 0; level < L; ++level) {
+    for(int j = 0; j < BUCKET_SIZE; ++j) {
+      recv(client_socket, buf, sizeof(Cmd), 0);
+      std::cout << "Recieved block #" << level*BUCKET_SIZE + j << "\n";
+      stash.push_back(((Cmd*)buf)->block);
+    }
+  }
+}
+
+void ORAMClient::exit() {
+  Cmd cmd = {
+    .opcode = EXIT,
+  };
+  send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  // shutdown(client_socket, SHUT_WR); 
+}
+
 /* --------------------------------------------- */
 
 ORAMServer::ORAMServer(uint16_t port) {
@@ -110,13 +154,43 @@ ORAMServer::ORAMServer(uint16_t port) {
   listen(server_socket, 5);
 
   client_socket = accept(server_socket, nullptr, nullptr);
+
+  int flag = 1;
+  setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 }
 
 void ORAMServer::run() {
-  // server.run();
-};
+  bool done = false;
+
+  while(!done) {
+    char buf[sizeof(Cmd)];
+    int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
+
+    if(bytes > 0) {
+      std::cout << bytes << "\n";
+      Cmd *cmd = (Cmd*)buf;
+
+      switch(cmd->opcode) {
+      case GET_BLOCKS:
+	get_blocks(cmd->leaf_idx);
+	std::cout << "done giving blocks\n";
+	break;
+      case DUMP_STASH:
+	get_blocks(cmd->leaf_idx);
+	break;
+      case EXIT:
+	done = true;
+      default:
+	break;
+      }
+    }
+
+  }
+  std::cout << "Exiting run\n";
+}
 
 void ORAMServer::dump_stash(unsigned int leaf_idx) {
+  std::cout << "Waiting for stash dump...\n";
   char buf[sizeof(Cmd)];
 
   Node *curr = get_leaf(leaf_idx);
@@ -134,6 +208,7 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 }
 
 void ORAMServer::get_blocks(unsigned int leaf_idx) {
+  std::cout << "get_blocks(" << leaf_idx << ");\n";
   Node *curr = root;
   while(curr != NULL) {
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
@@ -141,7 +216,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 	.opcode = BLOCK,
 	.block = *it,
       };
-      send(client_socket, (char*)(&cmd), sizeof(cmd), 0);
+      send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
     }
     curr->bucket->clear();
 
@@ -149,6 +224,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
     else curr = curr->r_child;
     leaf_idx >>= 1;
   }
+  // shutdown(client_socket, SHUT_WR); 
 }
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {

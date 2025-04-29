@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -21,11 +22,13 @@ enum Opcode {
   BLOCK, // single block in a sequence (use after starting bulk send)
   GET_BLOCKS,
   DUMP_STASH, 
+  EXIT,
 };
 
 struct Cmd {
   Opcode opcode;
   Block block;
+  unsigned int leaf_idx;
 };
 
 class ORAMClient {
@@ -33,10 +36,12 @@ class ORAMClient {
   ORAMClient(std::string server_ip, int port);
   int read(char *buf, unsigned int addr);
   void write(unsigned int addr, char data[BLOCK_SIZE]);
+  void exit();
  private:
   void dump_stash(unsigned int leaf_idx); // interface with server to dump stash
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
   unsigned int random_leaf_idx();
+  void get_blocks(unsigned int leaf_idx); // modifies the stash
 
  std::map<unsigned int, unsigned int> mappings;
  std::vector<Block> stash;
