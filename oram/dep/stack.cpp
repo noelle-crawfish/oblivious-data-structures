@@ -29,7 +29,18 @@ StackClient::StackClient(std::string server_ip, int port) : ORAMClient(server_ip
 }
 
 void StackClient::push(char data[BLOCK_SIZE]) {
+  unsigned int leaf_idx = random_leaf_idx();
+  get_blocks(leaf_idx);
 
+  stash.push_back(Block(++ctr, data));
+  Block *b = &stash[stash.size()-1];
+
+  b->leaf_idx = leaf_idx;
+  memcpy(b->metadata, (char*)(&last_leaf), sizeof(unsigned int));
+  last_leaf = b->leaf_idx;
+
+  // write blocks from the stash back to the path
+  dump_stash(leaf_idx);
 }
 
 int StackClient::pop(char *buf) {
@@ -51,6 +62,7 @@ int StackClient::pop(char *buf) {
   }
 
   dump_stash(leaf_idx);
+  ctr--;
 
   return BLOCK_SIZE;
 }

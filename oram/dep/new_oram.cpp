@@ -4,10 +4,10 @@
 #include <cstdarg>
 // TODO eventually move node here
  
-// #define TRACE 0 // comment thiis to disable trace
+#define TRACE 0 // comment thiis to disable trace
 
 #ifdef TRACE // if you want actual msgs you have to use fprintf i think 
-#define trace() std::cout << "\n This line hit: "<< __LINE__ << "\n"
+#define trace() std::cout << "This line hit: "<< __LINE__ << "\n"
 #else
 #define trace() do {} while(0)
 #endif
@@ -86,6 +86,7 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
 void ORAMClient::dump_stash(unsigned int leaf_idx) {
   // char buf[sizeof(Cmd)];
+  trace();
 
   Cmd cmd = {
     .opcode = DUMP_STASH,
@@ -132,6 +133,7 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
+  trace();
   char buf[sizeof(Cmd)];
 
   Cmd cmd = {
@@ -186,7 +188,6 @@ void ORAMServer::run() {
   while(!done) {
     char buf[sizeof(Cmd)];
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
-    trace(); 
     if(bytes > 0) {
       Cmd *cmd = (Cmd*)buf;
 
@@ -208,6 +209,7 @@ void ORAMServer::run() {
 }
 
 void ORAMServer::dump_stash(unsigned int leaf_idx) {
+  trace();
   char buf[sizeof(Cmd)];
 
   Node *curr = get_leaf(leaf_idx);
@@ -227,6 +229,7 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 }
 
 void ORAMServer::get_blocks(unsigned int leaf_idx) {
+  trace();
   Node *curr = root;
   while(curr != NULL) {
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
@@ -235,7 +238,6 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 	.block = *it,
       };
       send(client_socket, (char*)(&cmd), sizeof(Cmd), MSG_DONTWAIT);
-      trace(); 
     }
     curr->bucket->clear();
 
