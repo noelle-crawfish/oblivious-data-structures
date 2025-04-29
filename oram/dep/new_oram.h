@@ -37,7 +37,7 @@ class ORAMClient {
   int read(char *buf, unsigned int addr);
   void write(unsigned int addr, char data[BLOCK_SIZE]);
   void exit();
- private:
+ protected:
   void dump_stash(unsigned int leaf_idx); // interface with server to dump stash
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
   unsigned int random_leaf_idx();

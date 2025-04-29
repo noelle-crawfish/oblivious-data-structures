@@ -24,9 +24,7 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
 
   
   int flag = 1;
-  if(setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
-    std::cout << "No Nagles\n";
-  }
+  setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 
   connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
@@ -87,7 +85,6 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
 
 void ORAMClient::dump_stash(unsigned int leaf_idx) {
-  std::cout << "Dumping stash (size = " << stash.size() << ")\n";
   // char buf[sizeof(Cmd)];
 
   Cmd cmd = {
@@ -119,7 +116,6 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
     }
   }
 
-  std::cout << "Leftover blocks: " << stash.size() << "\n";
 }
 
 
@@ -146,13 +142,11 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
-      std::cout << "Recieved block #" << level*BUCKET_SIZE + j << " " << bytes << "\n";
       Block *b = &((Cmd*)buf)->block;
       if(b->addr != 0) stash.push_back(*b);
     }
   }
 
-  std::cout << "Size of stash: " << stash.size() << "\n";
 }
 
 void ORAMClient::exit() {
@@ -175,11 +169,9 @@ ORAMServer::ORAMServer(uint16_t port) {
 
 
   int flag = 1;
-  if(setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
-    std::cout << "NO nagle's\n";
-  }
+  setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 
-  int sndbuf_size = 4*sizeof(Cmd); // 64 KB
+  int sndbuf_size = 4*sizeof(Cmd); // idek if this is needed
   setsockopt(server_socket, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
 
   bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
@@ -196,13 +188,11 @@ void ORAMServer::run() {
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
     trace(); 
     if(bytes > 0) {
-      std::cout <<"Request size: "<< bytes << "\n";
       Cmd *cmd = (Cmd*)buf;
 
       switch(cmd->opcode) {
       case GET_BLOCKS:
 	get_blocks(cmd->leaf_idx);
-	std::cout << "done giving blocks\n";
 	break;
       case DUMP_STASH:
 	dump_stash(cmd->leaf_idx);
@@ -215,11 +205,9 @@ void ORAMServer::run() {
     }
 
   }
-  std::cout << "Exiting run\n";
 }
 
 void ORAMServer::dump_stash(unsigned int leaf_idx) {
-  std::cout << "Waiting for stash dump...\n";
   char buf[sizeof(Cmd)];
 
   Node *curr = get_leaf(leaf_idx);
@@ -232,7 +220,6 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 
       assert(cmd.opcode == BLOCK);
       curr->bucket->blocks.push_back(cmd.block);
-      std::cout << cmd.block.addr << " ";
     }
     assert(curr->bucket->blocks.size() == BUCKET_SIZE);
     curr = curr->parent;
@@ -240,11 +227,9 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 }
 
 void ORAMServer::get_blocks(unsigned int leaf_idx) {
-  std::cout << "get_blocks(" << leaf_idx << ");\n";
   Node *curr = root;
   while(curr != NULL) {
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
-      std::cout << "HERE\n";
       Cmd cmd = {
 	.opcode = BLOCK,
 	.block = *it,
