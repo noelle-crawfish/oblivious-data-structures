@@ -4,19 +4,13 @@
 #include <cstdarg>
 // TODO eventually move node here
  
-#define TRACE 0 // comment thiis to disable trace
+// #define TRACE 0 // comment thiis to disable trace
 
 #ifdef TRACE // if you want actual msgs you have to use fprintf i think 
 #define trace() std::cout << "\n This line hit: "<< __LINE__ << "\n"
 #else
 #define trace() do {} while(0)
 #endif
-
-
-void flush(int socket) {
-  char *null_char = "\0";
-  send(socket, null_char, 1, MSG_DONTWAIT);
-}
 
 /* --------------------------------------------- */
 
@@ -93,7 +87,7 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
 
 void ORAMClient::dump_stash(unsigned int leaf_idx) {
-  std::cout << "Dumping stash\n";
+  std::cout << "Dumping stash (size = " << stash.size() << ")\n";
   // char buf[sizeof(Cmd)];
 
   Cmd cmd = {
@@ -121,8 +115,11 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
 	cmd.block = Block();
 	cmd.block.leaf_idx = leaf_idx;
       }
+      send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
     }
   }
+
+  std::cout << "Leftover blocks: " << stash.size() << "\n";
 }
 
 
@@ -139,7 +136,6 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
-  std::cout << "Asking for blocks\n";
   char buf[sizeof(Cmd)];
 
   Cmd cmd = {
@@ -227,6 +223,8 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
   char buf[sizeof(Cmd)];
 
   Node *curr = get_leaf(leaf_idx);
+  assert(curr != NULL);
+
   while(curr != NULL) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       recv(client_socket, buf, sizeof(Cmd), 0);
@@ -234,6 +232,7 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 
       assert(cmd.opcode == BLOCK);
       curr->bucket->blocks.push_back(cmd.block);
+      std::cout << cmd.block.addr << " ";
     }
     assert(curr->bucket->blocks.size() == BUCKET_SIZE);
     curr = curr->parent;
@@ -263,7 +262,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
   Node *curr = root;
-  for(int i = 0; i < L; ++i) {
+  for(int i = 0; i < L-1; ++i) {
     if((leaf_idx & 0x01) == 0) curr = curr->l_child;
     else curr = curr->r_child;
     leaf_idx >>= 1;
