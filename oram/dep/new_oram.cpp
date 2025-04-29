@@ -4,6 +4,11 @@
 
 // TODO eventually move node here
 
+void flush(int socket) {
+  char *null_char = "\0";
+  send(socket, null_char, 1, MSG_DONTWAIT);
+}
+
 /* --------------------------------------------- */
 
 ORAMClient::ORAMClient(std::string server_ip, int port) {
@@ -17,7 +22,9 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
   connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
   
   int flag = 1;
-  setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+  if(setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
+    std::cout << "No Nagles\n";
+  }
 
   mappings = std::map<unsigned int, unsigned int>();
 }
@@ -85,9 +92,7 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  // shutdown(client_socket, SHUT_WR); 
-
-  std::cout << "shutdown happened\n";
+  flush(client_socket);
 
   // for(int level = 0; level < L; ++level) {
   for(int level = 0; level < L; ) {// ++level) {
@@ -120,7 +125,7 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  // shutdown(client_socket, SHUT_WR); 
+  flush(client_socket);
 
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
@@ -136,7 +141,7 @@ void ORAMClient::exit() {
     .opcode = EXIT,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  // shutdown(client_socket, SHUT_WR); 
+  flush(client_socket);
 }
 
 /* --------------------------------------------- */
@@ -156,7 +161,13 @@ ORAMServer::ORAMServer(uint16_t port) {
   client_socket = accept(server_socket, nullptr, nullptr);
 
   int flag = 1;
-  setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+  if(setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
+    std::cout << "NO nagle's\n";
+
+  }
+
+  int sndbuf_size = sizeof(Cmd); // 64 KB
+  setsockopt(client_socket, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
 }
 
 void ORAMServer::run() {
@@ -176,7 +187,7 @@ void ORAMServer::run() {
 	std::cout << "done giving blocks\n";
 	break;
       case DUMP_STASH:
-	get_blocks(cmd->leaf_idx);
+	dump_stash(cmd->leaf_idx);
 	break;
       case EXIT:
 	done = true;
@@ -216,7 +227,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 	.opcode = BLOCK,
 	.block = *it,
       };
-      send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+      send(client_socket, (char*)(&cmd), sizeof(Cmd), MSG_DONTWAIT);
     }
     curr->bucket->clear();
 
@@ -224,7 +235,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
     else curr = curr->r_child;
     leaf_idx >>= 1;
   }
-  // shutdown(client_socket, SHUT_WR); 
+  flush(client_socket);
 }
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
