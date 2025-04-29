@@ -19,12 +19,13 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
   server_addr.sin_port = htons(port);
   server_addr.sin_addr.s_addr = INADDR_ANY; // server_ip; // INADDR_ANY? for testing...
 
-  connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
   
   int flag = 1;
   if(setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
     std::cout << "No Nagles\n";
   }
+
+  connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
   mappings = std::map<unsigned int, unsigned int>();
 }
@@ -155,19 +156,19 @@ ORAMServer::ORAMServer(uint16_t port) {
   server_addr.sin_port = htons(port);
   server_addr.sin_addr.s_addr = INADDR_ANY;
 
+
+  int flag = 1;
+  if(setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
+    std::cout << "NO nagle's\n";
+  }
+
+  int sndbuf_size = sizeof(Cmd); // 64 KB
+  setsockopt(server_socket, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
+
   bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
   listen(server_socket, 5);
 
   client_socket = accept(server_socket, nullptr, nullptr);
-
-  int flag = 1;
-  if(setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int))) {
-    std::cout << "NO nagle's\n";
-
-  }
-
-  int sndbuf_size = sizeof(Cmd); // 64 KB
-  setsockopt(client_socket, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
 }
 
 void ORAMServer::run() {
@@ -235,7 +236,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
     else curr = curr->r_child;
     leaf_idx >>= 1;
   }
-  flush(client_socket);
+  // flush(client_socket);
 }
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
