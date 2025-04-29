@@ -6,16 +6,25 @@
 #include "oram.h"
 
 
-Node::Node(int height, Node *parent) {
+Node::Node(int height, int path, Node *parent) {
+  unsigned int leaf_idx = (unsigned int)path << (L-height);
   this->bucket = new Bucket();
+
+  Block b;
+  b.addr = 0;
+  b.leaf_idx = leaf_idx;
+  
+  for(int i = 0; i < BUCKET_SIZE; ++i) {
+    bucket->blocks.push_back(b);
+  }
 
   this->l_child = NULL;
   this->r_child = NULL;
   this->parent = parent;
 
   if(height != 0) {
-    this->l_child = new Node(height-1);
-    this->r_child = new Node(height-1);
+    this->l_child = new Node(height-1, (path << 1), this);
+    this->r_child = new Node(height-1, (path << 1) | 0x01, this);
   }
 }
 

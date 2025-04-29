@@ -13,8 +13,8 @@
 
 class Node {
  public:
-  Node(int height, Node *parent);
-  Node(int height) : Node(height, NULL) {};
+  Node(int height, int path, Node *parent);
+  Node(int height) : Node(height, 0, NULL) {};
   Node *l_child;
   Node *r_child;
   Node *parent;

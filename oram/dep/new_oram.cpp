@@ -93,7 +93,6 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  flush(client_socket);
 
   // for(int level = 0; level < L; ++level) {
   for(int level = 0; level < L; ) {// ++level) {
@@ -126,12 +125,11 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  flush(client_socket);
 
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
-      recv(client_socket, buf, sizeof(Cmd), 0);
-      std::cout << "Recieved block #" << level*BUCKET_SIZE + j << "\n";
+      int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
+      std::cout << "Recieved block #" << level*BUCKET_SIZE + j << " " << bytes << "\n";
       stash.push_back(((Cmd*)buf)->block);
     }
   }
@@ -142,7 +140,6 @@ void ORAMClient::exit() {
     .opcode = EXIT,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  flush(client_socket);
 }
 
 /* --------------------------------------------- */
@@ -162,7 +159,7 @@ ORAMServer::ORAMServer(uint16_t port) {
     std::cout << "NO nagle's\n";
   }
 
-  int sndbuf_size = sizeof(Cmd); // 64 KB
+  int sndbuf_size = 4*sizeof(Cmd); // 64 KB
   setsockopt(server_socket, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
 
   bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
@@ -224,6 +221,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
   Node *curr = root;
   while(curr != NULL) {
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
+      std::cout << "HERE\n";
       Cmd cmd = {
 	.opcode = BLOCK,
 	.block = *it,
@@ -236,7 +234,6 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
     else curr = curr->r_child;
     leaf_idx >>= 1;
   }
-  // flush(client_socket);
 }
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
