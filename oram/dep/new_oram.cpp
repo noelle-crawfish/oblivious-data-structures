@@ -93,7 +93,7 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
 
 void ORAMClient::dump_stash(unsigned int leaf_idx) {
-  std::cout << "Dumping stash -- or am I? \n";
+  std::cout << "Dumping stash\n";
   // char buf[sizeof(Cmd)];
 
   Cmd cmd = {
@@ -103,20 +103,33 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
 
-  // for(int level = 0; level < L; ++level) {
-  for(int level = 0; level < L; ) {// ++level) {
-    // TODO is level 0 bottom or top?
+  cmd.opcode = BLOCK;
+  // cmd.leaf_idx = -1; // no longer used
 
-    // find up to Z blocks on_path_at_level(b->leaf_idx, leaf_idx, level);
-    // if needed pad with empty Block()
-    // send over RPC to server
+  for(int level = (L-1); level >= 0; --level) {
+    for(int i = 0; i < BUCKET_SIZE; ++i) {
+      bool found_block = false;
+      for(int j = 0; j < stash.size(); ++j) {
+	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level)) {
+	  cmd.block = stash[j];
+	  stash.erase(stash.begin()+j, stash.begin()+j+1);
+	  found_block = true;
+	  break;
+	}
+      }
+      if(!found_block) {
+	cmd.block = Block();
+	cmd.block.leaf_idx = leaf_idx;
+      }
+    }
   }
 }
 
 
 bool ORAMClient::on_path_at_level(unsigned int idx1, unsigned int idx2, int level) {
-  idx1 >>= (L - level);
-  idx2 >>= (L - level);
+  // L is the bottom...
+  idx1 >>= (L - level - 1);
+  idx2 >>= (L - level - 1);
 
   return (idx1 == idx2);
 }
@@ -138,9 +151,12 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
       std::cout << "Recieved block #" << level*BUCKET_SIZE + j << " " << bytes << "\n";
-      stash.push_back(((Cmd*)buf)->block);
+      Block *b = &((Cmd*)buf)->block;
+      if(b->addr != 0) stash.push_back(*b);
     }
   }
+
+  std::cout << "Size of stash: " << stash.size() << "\n";
 }
 
 void ORAMClient::exit() {
