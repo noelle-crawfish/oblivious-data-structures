@@ -1,8 +1,17 @@
 #include "new_oram.h"
 
 #include <iostream>
-
+#include <cstdarg>
 // TODO eventually move node here
+ 
+#define TRACE 0 // comment thiis to disable trace
+
+#ifdef TRACE // if you want actual msgs you have to use fprintf i think 
+#define trace() std::cout << "\n This line hit: "<< __LINE__ << "\n"
+#else
+#define trace() do {} while(0)
+#endif
+
 
 void flush(int socket) {
   char *null_char = "\0";
@@ -127,10 +136,11 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
   flush(client_socket);
-
+  int bytes = 0; 
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
-      recv(client_socket, buf, sizeof(Cmd), 0);
+      bytes = recv(client_socket, buf, sizeof(Cmd), 0);
+      trace();  
       std::cout << "Recieved block #" << level*BUCKET_SIZE + j << "\n";
       stash.push_back(((Cmd*)buf)->block);
     }
@@ -177,9 +187,9 @@ void ORAMServer::run() {
   while(!done) {
     char buf[sizeof(Cmd)];
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
-
+    trace(); 
     if(bytes > 0) {
-      std::cout << bytes << "\n";
+      std::cout <<"Request size: "<< bytes << "\n";
       Cmd *cmd = (Cmd*)buf;
 
       switch(cmd->opcode) {
@@ -229,6 +239,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 	.block = *it,
       };
       send(client_socket, (char*)(&cmd), sizeof(Cmd), MSG_DONTWAIT);
+      trace(); 
     }
     curr->bucket->clear();
 
