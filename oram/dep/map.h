@@ -14,6 +14,11 @@ struct MapMetadata {
 //   unsigned int parent_addr;
 };
 
+struct BlockPtr {
+  unsigned int addr;
+  unsigned int leaf_idx;
+};
+
 template <typename K, typename V>
 class ObliviousMap : public ORAM {
  public:
@@ -33,8 +38,9 @@ public:
   MapClient(std::string server_addr, int port);
   void insert(K k, V v);
 private:
-  Block* right_rotate(Block *b); // TODO should I use Block or addr as identifyer? 
-  Block* left_rotate(Block *b);
+  BlockPtr insert(K k, V v, BlockPtr root);
+  BlockPtr right_rotate(BlockPtr b_ptr); 
+  BlockPtr left_rotate(BlockPtr b_ptr);
   int get_balance(Block *b); // get balance of node @ addr
   Block get_block(unsigned int addr, unsigned int leaf_idx);
   int height(Block *b);
@@ -42,6 +48,7 @@ private:
   void serialize_metadata(char *buf, MapMetadata m);
 
   unsigned int root_addr, root_leaf;
+  int ctr;
 };
 
 

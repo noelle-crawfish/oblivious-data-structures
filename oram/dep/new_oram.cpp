@@ -15,6 +15,7 @@
 /* --------------------------------------------- */
 
 ORAMClient::ORAMClient(std::string server_ip, int port) {
+  std::cout << server_ip << "\n";
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
 
   sockaddr_in server_addr;
@@ -101,7 +102,7 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
   for(int level = (L-1); level >= 0; --level) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       bool found_block = false;
-      for(int j = 0; j < stash.size(); ++j) {
+      for(unsigned int j = 0; j < stash.size(); ++j) {
 	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level)) {
 	  cmd.block = stash[j];
 	  stash.erase(stash.begin()+j, stash.begin()+j+1);
@@ -136,14 +137,16 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
   trace();
   char buf[sizeof(Cmd)];
 
+  Block null_block;
   Cmd cmd = {
     .opcode = GET_BLOCKS,
+    .block = null_block,
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
-      int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
+      recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
       if(b->addr != 0) stash.push_back(*b);
     }
@@ -152,8 +155,11 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
 }
 
 void ORAMClient::exit() {
+  Block null_block;
   Cmd cmd = {
     .opcode = EXIT,
+    .block = null_block,
+    .leaf_idx = 0,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
 }
@@ -236,6 +242,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
       Cmd cmd = {
 	.opcode = BLOCK,
 	.block = *it,
+	.leaf_idx = 0, // unused
       };
       send(client_socket, (char*)(&cmd), sizeof(Cmd), MSG_DONTWAIT);
     }

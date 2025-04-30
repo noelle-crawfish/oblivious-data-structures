@@ -42,6 +42,8 @@ void ObliviousMap<K, V>::serialize_metadata(char *buf, MapMetadata m) {
 
 // ------------------------------------------------------------------------------------------
 
+template class MapClient<int, int>;
+
 template<typename K, typename V>
 MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
   root_addr = 0, root_leaf = 0;
@@ -49,13 +51,80 @@ MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(serve
 
 template<typename K, typename V>
 void MapClient<K, V>::insert(K k, V v) {
-
+  BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
+  root_addr = b_ptr.addr;
+  root_leaf = b_ptr.leaf_idx;
 }
 
 template<typename K, typename V>
-Block* MapClient<K, V>::right_rotate(Block *b) {
+BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
+  Block b;
+
+  if(root.addr == 0) {
+    b.addr = ctr;
+    b.leaf_idx = random_leaf_idx();
+    memset(b.metadata, 0, sizeof(MapMetadata));
+
+    get_blocks(b.leaf_idx);
+    stash.push_back(b);
+
+    dump_stash(b.leaf_idx);
+
+    return BlockPtr {.addr = b.addr, .leaf_idx = b.leaf_idx};
+  }
+
+  b = get_block(root.addr, root.leaf_idx);
+  std::pair<K, V> *b_entry = (std::pair<K, V>*)b.data;
+
+  MapMetadata b_meta = parse_metadata(b.metadata);
+  if(k < b_entry->first) {
+    insert(k, v, BlockPtr{.addr = b_meta.l_child_addr, .leaf_idx = b_meta.l_child_leaf});
+  } else if(k > b_entry->first) {
+    insert(k, v, BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
+  } else {
+    assert(0); // TODO need to decide what behavior in multiple insertion case
+  }
+
+  Block b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+  Block b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+
+  // update height
+  MapMetadata b_left_meta = parse_metadata(b_left.metadata);
+  MapMetadata b_right_meta = parse_metadata(b_right.metadata);
+  ((MapMetadata*)(b.metadata))->height = 1 + std::max(b_left_meta.height, b_right_meta.height);
+
+  // get balance
+  int balance = get_balance(&b);
+
+  if(balance > 1 && k < ((std::pair<K, V>*)(b_left.data))->first) {
+    // left-left
+    return right_rotate(root);
+  } else if(balance < -1 && k > ((std::pair<K, V>*)(b_right.data))->first) {
+    // right-right
+    return left_rotate(root);
+  } else if(balance > 1 && k > ((std::pair<K, V>*)(b_left.data))->first) {
+    // left-right
+    return right_rotate(root);
+  } else if(balance < -1 && k < ((std::pair<K, V>*)(b_right.data))->first) {
+    // right-left
+    return left_rotate(root);
+  } else {
+    return root;
+  }
+
+  BlockPtr nop_ptr;
+  return nop_ptr;
+}
+
+template<typename K, typename V>
+BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
+  Block b_tmp = get_block(b_ptr.addr, b_ptr.leaf_idx);
+  Block *b = &b_tmp;
+
   MapMetadata b_meta = parse_metadata(b->metadata);
-  Block *new_root = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+
+  Block new_root_tmp = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+  Block *new_root = &new_root_tmp;
 
   MapMetadata new_root_meta = parse_metadata(new_root->metadata);
 
@@ -66,27 +135,33 @@ Block* MapClient<K, V>::right_rotate(Block *b) {
   new_root_meta.r_child_leaf = b->leaf_idx;
 
   // update heights
-  MapMetadata b_left_meta = parse_metadata(get_block(b_meta.l_child_addr, b_meta.l_child_leaf)->metadata);
-  MapMetadata b_right_meta = parse_metadata(get_block(b_meta.r_child_addr, b_meta.r_child_leaf)->metadata);
+  MapMetadata b_left_meta = parse_metadata(get_block(b_meta.l_child_addr, b_meta.l_child_leaf).metadata);
+  MapMetadata b_right_meta = parse_metadata(get_block(b_meta.r_child_addr, b_meta.r_child_leaf).metadata);
   b_meta.height = 1 + std::max(b_left_meta.height, b_right_meta.height);
 
   MapMetadata new_root_left_meta = parse_metadata(get_block(new_root_meta.l_child_addr,
-							    new_root_meta.l_child_leaf)->metadata);
+							    new_root_meta.l_child_leaf).metadata);
   MapMetadata new_root_right_meta = parse_metadata(get_block(new_root_meta.r_child_addr,
-							     new_root_meta.r_child_leaf)->metadata);
+							     new_root_meta.r_child_leaf).metadata);
   new_root_meta.height = 1 + std::max(new_root_left_meta.height, new_root_right_meta.height);
 
   // copy metadata back in
   serialize_metadata(b->metadata, b_meta);
   serialize_metadata(new_root->metadata, new_root_meta);
 
-  return new_root;
+  BlockPtr new_root_ptr {.addr = new_root->addr, .leaf_idx = new_root->leaf_idx};
+  return new_root_ptr;
 }
 
 template<typename K, typename V>
-Block* MapClient<K, V>::left_rotate(Block *b) {
+BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
+  Block b_tmp = get_block(b_ptr.addr, b_ptr.leaf_idx);
+  Block *b = &b_tmp;
+
   MapMetadata b_meta = parse_metadata(b->metadata);
-  Block *new_root = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+
+  Block new_root_tmp = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+  Block *new_root = &new_root_tmp;
 
   MapMetadata new_root_meta = parse_metadata(new_root->metadata);
 
@@ -97,21 +172,22 @@ Block* MapClient<K, V>::left_rotate(Block *b) {
   new_root_meta.l_child_leaf = b->leaf_idx;
 
   // update heights
-  MapMetadata b_left_meta = parse_metadata(get_block(b_meta.l_child_addr, b_meta.l_child_leaf)->metadata);
-  MapMetadata b_right_meta = parse_metadata(get_block(b_meta.r_child_addr, b_meta.r_child_leaf)->metadata);
+  MapMetadata b_left_meta = parse_metadata(get_block(b_meta.l_child_addr, b_meta.l_child_leaf).metadata);
+  MapMetadata b_right_meta = parse_metadata(get_block(b_meta.r_child_addr, b_meta.r_child_leaf).metadata);
   b_meta.height = 1 + std::max(b_left_meta.height, b_right_meta.height);
 
   MapMetadata new_root_left_meta = parse_metadata(get_block(new_root_meta.l_child_addr,
-							    new_root_meta.l_child_leaf)->metadata);
+							    new_root_meta.l_child_leaf).metadata);
   MapMetadata new_root_right_meta = parse_metadata(get_block(new_root_meta.r_child_addr,
-							     new_root_meta.r_child_leaf)->metadata);
+							     new_root_meta.r_child_leaf).metadata);
   new_root_meta.height = 1 + std::max(new_root_left_meta.height, new_root_right_meta.height);
 
   // copy metadata back in
   serialize_metadata(b->metadata, b_meta);
   serialize_metadata(new_root->metadata, new_root_meta);
 
-  return new_root;
+  BlockPtr new_root_ptr {.addr = new_root->addr, .leaf_idx = new_root->leaf_idx};
+  return new_root_ptr;
 }
 
 template<typename K, typename V>
@@ -120,8 +196,8 @@ int MapClient<K, V>::get_balance(Block *b) {
 
   MapMetadata m = parse_metadata(b->metadata);
 
-  MapMetadata m_left = parse_metadata(get_block(m.l_child_addr, m.l_child_leaf)->metadata);
-  MapMetadata m_right = parse_metadata(get_block(m.l_child_addr, m.l_child_leaf)->metadata);
+  MapMetadata m_left = parse_metadata(get_block(m.l_child_addr, m.l_child_leaf).metadata);
+  MapMetadata m_right = parse_metadata(get_block(m.l_child_addr, m.l_child_leaf).metadata);
 
   return m_left.height - m_right.height;
 }
@@ -131,14 +207,14 @@ Block MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
   Block *b = NULL;
   // check stash
   for(auto it = stash.begin(); it != stash.end(); ++it) {
-    b = (Block*)it;
+    b = &(*it);
     if(b->addr == addr && b->leaf_idx == leaf_idx) return *b;
   }
 
   // check server
   get_blocks(leaf_idx);
   for(auto it = stash.begin(); it != stash.end(); ++it) {
-    b = (Block*)it;
+    b = &(*it);
     if(b->addr == addr && b->leaf_idx == leaf_idx) break;
   }
   dump_stash(leaf_idx);
@@ -155,7 +231,7 @@ int MapClient<K, V>::height(Block *b) {
   Block left = get_block(m.l_child_addr, m.l_child_leaf);
   Block right = get_block(m.r_child_addr, m.r_child_leaf);
 
-  return max(height(&left), height(&right));
+  return std::max(height(&left), height(&right));
 }
 
 template<typename K, typename V>

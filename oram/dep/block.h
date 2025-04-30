@@ -3,7 +3,7 @@
 #define BLOCK_H
 
 #define BLOCK_SIZE 1024
-#define METADATA_SIZE 16
+#define METADATA_SIZE 512
 
 class Block {
  public:
