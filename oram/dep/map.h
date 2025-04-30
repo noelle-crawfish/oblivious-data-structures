@@ -24,16 +24,19 @@ class MapClient : public ORAMClient {
 public:
   MapClient(std::string server_addr, int port);
   void insert(K k, V v);
-  bool remove(K k); // TODO
+  bool remove(K k);
   V at(K k);
   bool contains(K k); // TODO
   int size(); // TODO going to break once remove is implemented
 private:
   BlockPtr insert(K k, V v, BlockPtr root);
+  BlockPtr remove(K k, BlockPtr root);
   BlockPtr find_key(K k, BlockPtr root);
   BlockPtr right_rotate(BlockPtr b_ptr); 
   BlockPtr left_rotate(BlockPtr b_ptr);
-  int get_balance(Block *b); // get balance of node @ addr
+  BlockPtr min_node(BlockPtr root);
+  int get_balance(BlockPtr b_ptr); // get balance of node @ addr
+  Block* get_block(BlockPtr b);
   Block* get_block(unsigned int addr, unsigned int leaf_idx);
   int height(Block *b);
   MapMetadata parse_metadata(char *buf);
