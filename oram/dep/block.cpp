@@ -14,7 +14,7 @@ Block::Block() {
 
 Block::Block(unsigned int addr, char data[BLOCK_SIZE]) {
   this->addr = addr;
-  this->leaf_idx = 0; // will be initialized when written back from stash?
+  this->leaf_idx = 0; // Initialized after its pushed on to the stash, before its back from the stash. 
   memcpy(this->data, data, BLOCK_SIZE);
   in_use = false;
 }
