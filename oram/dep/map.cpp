@@ -2,46 +2,6 @@
 
 #include "map.h"
 
-template<typename K, typename V>
-ObliviousMap<K, V>::ObliviousMap() {
-  // ctr = 0;
-  root_addr = 0;
-  root_leaf = N_LEAVES; // invalid value to represent "empty"
-}
-
-template<typename K, typename V>
-void ObliviousMap<K, V>::insert(K k, V v) {
-
-
-  // unsigned int leaf_idx = std::rand() % N_LEAVES;
-  unsigned int leaf_idx = 0;
-
-
-  if(root_leaf == N_LEAVES) {
-    root_leaf = leaf_idx;
-  }
-}
-
-template<typename K, typename V>
-MapMetadata ObliviousMap<K, V>::parse_metadata(char *buf) {
-  MapMetadata m;
-
-  // m.l_child_leaf = *((unsigned int*)buf);
-  // m.r_child_leaf = *((unsigned int*)buf + 1);
-  // m.parent_leaf = *((unsigned int*)buf + 2);
-
-  return m;
-}
-
-template<typename K, typename V>
-void ObliviousMap<K, V>::serialize_metadata(char *buf, MapMetadata m) {
-  // memcpy(buf, &m.l_child_leaf, sizeof(unsigned int));
-  // memcpy(buf + sizeof(unsigned int), &m.r_child_leaf, sizeof(unsigned int));
-  // memcpy(buf + 2*sizeof(unsigned int), &m.parent_leaf, sizeof(unsigned int));
-}
-
-// ------------------------------------------------------------------------------------------
-
 template class MapClient<int, int>;
 
 template<typename K, typename V>
@@ -52,6 +12,7 @@ MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(serve
 template<typename K, typename V>
 void MapClient<K, V>::insert(K k, V v) {
   BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
+
   root_addr = b_ptr.addr;
   root_leaf = b_ptr.leaf_idx;
 }
@@ -64,6 +25,9 @@ bool MapClient<K, V>::remove(K k) {
 
 template<typename K, typename V>
 V MapClient<K, V>::at(K k) {
+  std::cout << "at(" << k << ");\n";
+  std::cout << "stash size: " << stash.size() << "\n";
+
   BlockPtr b_ptr = find_key(k, BlockPtr(root_addr, root_leaf));
   Block b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   return ((std::pair<K, V>*)b.data)->second;
@@ -71,10 +35,13 @@ V MapClient<K, V>::at(K k) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
+  std::cout << "Inserting (" << k << ", " << v << ") - @ addr " << root.addr << "\n";
+
   Block b;
 
   if(root.addr == 0) {
-    b.addr = ctr;
+    std::cout << "Doing insert...\n";
+    b.addr = ++ctr;
     b.leaf_idx = random_leaf_idx();
     memset(b.metadata, 0, sizeof(MapMetadata));
 
@@ -94,23 +61,36 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
 
   MapMetadata b_meta = parse_metadata(b.metadata);
   if(k < b_entry->first) {
-    insert(k, v, BlockPtr{.addr = b_meta.l_child_addr, .leaf_idx = b_meta.l_child_leaf});
+    std::cout << "going left\n";
+    BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = b_meta.l_child_addr, .leaf_idx = b_meta.l_child_leaf});
+    b_meta.l_child_addr = b_ptr.addr;
+    b_meta.l_child_leaf = b_ptr.leaf_idx;
+    serialize_metadata((char*)b.metadata, b_meta);
   } else if(k > b_entry->first) {
-    insert(k, v, BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
+    std::cout << "going right\n";
+    BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
+    b_meta.r_child_addr = b_ptr.addr;
+    b_meta.r_child_leaf = b_ptr.leaf_idx;
+    serialize_metadata((char*)(&b.metadata), b_meta);
   } else {
     assert(0); // TODO need to decide what behavior in multiple insertion case
   }
+
+  std::cout << "Post-Processing...\n";
 
   Block b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
 
   // update height
+  std::cout << "Updating height\n";
   MapMetadata b_left_meta = parse_metadata(b_left.metadata);
   MapMetadata b_right_meta = parse_metadata(b_right.metadata);
   ((MapMetadata*)(b.metadata))->height = 1 + std::max(b_left_meta.height, b_right_meta.height);
 
   // get balance
+  std::cout << "Getting balance: ";
   int balance = get_balance(&b);
+  std::cout << balance << "\n";
 
   if(balance > 1 && k < ((std::pair<K, V>*)(b_left.data))->first) {
     // left-left
@@ -134,14 +114,19 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
+  std::cout << "find_key " << k << " @ block addr " << root.addr << "\n";
   Block b = get_block(root.addr, root.leaf_idx);
   MapMetadata b_meta = *(MapMetadata*)b.metadata;
-  if(((std::pair<K, V>*)b.data)->first == k) return root;
-  else if(((std::pair<K, V>*)b.data)->first < k)
+  if(((std::pair<K, V>*)b.data)->first == k) {
+    std::cout << "FOUND!\n";
+    return root;
+  } else if(((std::pair<K, V>*)b.data)->first < k) {
+    std::cout << "Going right\n";
     return find_key(k, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
-  else if(((std::pair<K, V>*)b.data)->first > k)
+  } else if(((std::pair<K, V>*)b.data)->first > k) {
+    std::cout << "Going left\n";
     return find_key(k, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
-  else return BlockPtr(0, 0); // impossible case
+  } else return BlockPtr(0, 0); // impossible case
 }
 
 template<typename K, typename V>
@@ -247,7 +232,8 @@ Block MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
   }
   dump_stash(leaf_idx);
 
-  return *b;
+  if(b == NULL) return Block();
+  else return *b;
 }
 
 template<typename K, typename V>

@@ -20,19 +20,6 @@ struct BlockPtr {
 };
 
 template <typename K, typename V>
-class ObliviousMap : public ORAM {
- public:
-  ObliviousMap();
-  void insert(K k, V v);
- private:
-  MapMetadata parse_metadata(char *buf);
-  void serialize_metadata(char *buf, MapMetadata m);
-
-  unsigned int root_leaf;
-  unsigned int root_addr;
-};
-
-template <typename K, typename V>
 class MapClient : public ORAMClient {
 public:
   MapClient(std::string server_addr, int port);
