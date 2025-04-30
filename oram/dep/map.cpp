@@ -19,11 +19,14 @@ void MapClient<K, V>::insert(K k, V v) {
 
   // std::cout << "New root after insert: " << b_ptr.addr << " " << b_ptr.leaf_idx << "\n";
   // std::cout << "New metadata: " << b_meta.l_child_addr << " " << b_meta.r_child_addr << "\n";
+
+  for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
 }
 
 template<typename K, typename V>
 bool MapClient<K, V>::remove(K k) {
 
+  for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
   return 0;
 }
 
@@ -34,6 +37,8 @@ V MapClient<K, V>::at(K k) {
 
   BlockPtr b_ptr = find_key(k, BlockPtr(root_addr, root_leaf));
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
+
+  for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
   return ((std::pair<K, V>*)b->data)->second;
 }
 
@@ -229,7 +234,10 @@ Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
   }
   for(auto it = stash.begin(); it != stash.end(); ++it) {
     // std::cout << (*it).addr << " " << (*it).leaf_idx << ": " << (*it).in_use << "\n";
-    if((*it).addr == addr && (*it).leaf_idx == leaf_idx) return &(*it);
+    if((*it).addr == addr && (*it).leaf_idx == leaf_idx) {
+      (*it).in_use = true;
+      return &(*it);
+    }
   }
   if(stash.size() > 0) {
     // std::cout << "-----------------------------------\n";
