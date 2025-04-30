@@ -141,7 +141,7 @@ unsigned int ORAMClient::random_leaf_idx() {
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
   trace();
-  std::cout << "get_blocks(" << leaf_idx << ")\n";
+  // std::cout << "get_blocks(" << leaf_idx << ")\n";
   char buf[sizeof(Cmd)];
 
   Block null_block;
@@ -151,18 +151,16 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  std::cout << "Getting blocks...\n";
+  // std::cout << "Getting blocks...\n";
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
       if(b->addr != 0) stash.push_back(*b);
-      std::cout << "(" << b->addr << ", " << b->leaf_idx << ") ";
+      // std::cout << "(" << b->addr << ", " << b->leaf_idx << ") ";
     }
-    std::cout << "\n";
+    // std::cout << "\n";
   }
-  std::cout << "DONE?\n";
-
 }
 
 void ORAMClient::exit() {

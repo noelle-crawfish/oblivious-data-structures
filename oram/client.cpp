@@ -6,6 +6,8 @@
 #include "queue.h"
 #include "map.h"
 
+#define N 4
+
 int main() {
   // char data[BLOCK_SIZE] = "Hello, world!\0";
   // char buf[BLOCK_SIZE];
@@ -28,20 +30,17 @@ int main() {
   // std::cout << "Read: " << buf << "\n";
 
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
-  for(int i = 0; i < 2; ++i) {
+  // for(int i = 0; i < N; ++i) {
+  for(int i = N-1; i >=0; --i) {
     client.insert(i, i*2);
     std::cout << "Inserted: " << i << ", " << i*2 << "\n";
     std::cout << "-----------------------------------------------------------------\n";
   }
 
-  std::cout << client.at(0) << "\n";
-  std::cout << "-----------------------------------------------------------------\n";
-  std::cout << client.at(1) << "\n";
-
-  // for(int i = 0; i < 8; ++i) {
-  //   std::cout << client.at(i) << " ";
-  // }
-  // std::cout << "\n";
+  for(int i = 0; i < N; ++i) {
+     std::cout << client.at(i) << " ";
+  }
+  std::cout << "\n";
 
   client.exit();
 

@@ -152,13 +152,17 @@ BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
   b_meta.l_child_addr = new_root_meta.r_child_addr; // replace new root w/ it's right child in old root
   b_meta.l_child_leaf = new_root_meta.r_child_leaf;
 
+  b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   new_root_meta.r_child_addr = b->addr; // new root's right child is the old root
   new_root_meta.r_child_leaf = b->leaf_idx;
 
   // update heights
-  MapMetadata b_left_meta = parse_metadata(get_block(b_meta.l_child_addr, b_meta.l_child_leaf)->metadata);
-  MapMetadata b_right_meta = parse_metadata(get_block(b_meta.r_child_addr, b_meta.r_child_leaf)->metadata);
-  b_meta.height = 1 + std::max(b_left_meta.height, b_right_meta.height);
+  Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+  Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+
+  int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
+  int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
+  b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
   MapMetadata new_root_left_meta = parse_metadata(get_block(new_root_meta.l_child_addr,
 							    new_root_meta.l_child_leaf)->metadata);
@@ -185,13 +189,17 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   b_meta.r_child_addr = new_root_meta.l_child_addr; // replace new root w/ it's left child in old root
   b_meta.r_child_leaf = new_root_meta.l_child_leaf;
 
+  b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   new_root_meta.l_child_addr = b->addr; // new root's left child is the old root
   new_root_meta.l_child_leaf = b->leaf_idx;
 
   // update heights
-  MapMetadata b_left_meta = parse_metadata(get_block(b_meta.l_child_addr, b_meta.l_child_leaf)->metadata);
-  MapMetadata b_right_meta = parse_metadata(get_block(b_meta.r_child_addr, b_meta.r_child_leaf)->metadata);
-  b_meta.height = 1 + std::max(b_left_meta.height, b_right_meta.height);
+  Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+  Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+
+  int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
+  int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
+  b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
   MapMetadata new_root_left_meta = parse_metadata(get_block(new_root_meta.l_child_addr,
 							    new_root_meta.l_child_leaf)->metadata);
