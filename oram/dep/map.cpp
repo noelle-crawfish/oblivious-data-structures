@@ -39,3 +39,48 @@ void ObliviousMap<K, V>::serialize_metadata(char *buf, MapMetadata m) {
   memcpy(buf + sizeof(unsigned int), &m.r_child_leaf, sizeof(unsigned int));
   memcpy(buf + 2*sizeof(unsigned int), &m.parent_leaf, sizeof(unsigned int));
 }
+
+// ------------------------------------------------------------------------------------------
+
+template<typename K, typename V>
+MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
+  root_addr = 0, root_leaf = 0;
+}
+
+template<typename K, typename V>
+void MapClient<K, V>::insert(K k, V v) {
+
+}
+
+Block right_rotate(Block addr) {
+
+  return Block();
+}
+
+Block left_rotate(Block addr) {
+
+  return Block();
+}
+
+int get_balance(Block addr) {
+
+  return 0;
+}
+
+template<typename K, typename V>
+MapMetadata MapClient<K, V>::parse_metadata(char *buf) {
+  MapMetadata m;
+
+  m.l_child_leaf = *((unsigned int*)buf);
+  m.r_child_leaf = *((unsigned int*)buf + 1);
+  m.parent_leaf = *((unsigned int*)buf + 2);
+
+  return m;
+}
+
+template<typename K, typename V>
+void MapClient<K, V>::serialize_metadata(char *buf, MapMetadata m) {
+  memcpy(buf, &m.l_child_leaf, sizeof(unsigned int));
+  memcpy(buf + sizeof(unsigned int), &m.r_child_leaf, sizeof(unsigned int));
+  memcpy(buf + 2*sizeof(unsigned int), &m.parent_leaf, sizeof(unsigned int));
+}

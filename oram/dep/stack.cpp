@@ -25,7 +25,8 @@ Block ObliviousStack::pop() {
 }
 
 StackClient::StackClient(std::string server_ip, int port) : ORAMClient(server_ip, port) {
-
+  ctr = 0;
+  last_leaf = 0;
 }
 
 void StackClient::push(char data[BLOCK_SIZE]) {
@@ -65,4 +66,12 @@ int StackClient::pop(char *buf) {
   ctr--;
 
   return BLOCK_SIZE;
+}
+
+bool StackClient::empty() {
+  return ctr == 0;
+}
+
+int StackClient::size() {
+  return ctr;
 }

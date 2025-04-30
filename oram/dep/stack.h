@@ -20,6 +20,8 @@ public:
   StackClient(std::string server_ip, int port);
   void push(char data[BLOCK_SIZE]);
   int pop(char *buf);
+  bool empty();
+  int size();
 private:
   unsigned int ctr;
   unsigned int last_leaf;
