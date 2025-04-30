@@ -13,6 +13,7 @@ class Block {
   unsigned int leaf_idx;
   char data[BLOCK_SIZE];
   char metadata[METADATA_SIZE];
+  bool in_use;
 };
 
 #endif

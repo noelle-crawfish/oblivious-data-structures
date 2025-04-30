@@ -15,6 +15,9 @@ void MapClient<K, V>::insert(K k, V v) {
 
   root_addr = b_ptr.addr;
   root_leaf = b_ptr.leaf_idx;
+
+  // std::cout << "New root after insert: " << b_ptr.addr << " " << b_ptr.leaf_idx << "\n";
+  // std::cout << "New metadata: " << b_meta.l_child_addr << " " << b_meta.r_child_addr << "\n";
 }
 
 template<typename K, typename V>
@@ -25,8 +28,8 @@ bool MapClient<K, V>::remove(K k) {
 
 template<typename K, typename V>
 V MapClient<K, V>::at(K k) {
-  std::cout << "at(" << k << ");\n";
-  std::cout << "stash size: " << stash.size() << "\n";
+  // std::cout << "at(" << k << ");\n";
+  // std::cout << "stash size: " << stash.size() << "\n";
 
   BlockPtr b_ptr = find_key(k, BlockPtr(root_addr, root_leaf));
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
@@ -35,14 +38,14 @@ V MapClient<K, V>::at(K k) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
-  std::cout << "Inserting (" << k << ", " << v << ") - @ addr " << root.addr << "\n";
-
+  // std::cout << "Inserting (" << k << ", " << v << ") - @ addr " << root.addr << "\n";
 
   if(root.addr == 0) {
     Block new_block;
-    std::cout << "Doing insert...\n";
+    // std::cout << "Doing insert...\n";
     new_block.addr = ++ctr;
     new_block.leaf_idx = random_leaf_idx();
+    new_block.in_use = true;
     memset(new_block.metadata, 0, sizeof(MapMetadata));
 
     std::pair<K, V> data = std::pair<K, V>(k, v);
@@ -57,39 +60,37 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
 
   MapMetadata b_meta = parse_metadata(b->metadata);
   if(k < b_entry->first) {
-    std::cout << "going left\n";
+    // std::cout << "going left\n";
     BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = b_meta.l_child_addr, .leaf_idx = b_meta.l_child_leaf});
     b_meta.l_child_addr = b_ptr.addr;
     b_meta.l_child_leaf = b_ptr.leaf_idx;
-    serialize_metadata((char*)b->metadata, b_meta);
+    serialize_metadata(get_block(root.addr, root.leaf_idx)->metadata, b_meta);
   } else if(k > b_entry->first) {
-    std::cout << "going right\n";
+    // std::cout << "going right\n";
     BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
     b_meta.r_child_addr = b_ptr.addr;
     b_meta.r_child_leaf = b_ptr.leaf_idx;
-    serialize_metadata((char*)(b->metadata), b_meta);
-
-    std::cout << "New right child: " << ((MapMetadata*)(b->metadata))->r_child_addr << "\n";
+    serialize_metadata(get_block(root.addr, root.leaf_idx)->metadata, b_meta);
   } else {
     assert(0); // TODO need to decide what behavior in multiple insertion case
   }
 
-  std::cout << "Post-Processing...\n";
+  // std::cout << "Post-Processing...\n";
 
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
 
   // update height
-  std::cout << "Updating height\n";
+  // std::cout << "Updating height\n";
   int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   ((MapMetadata*)(b->metadata))->height = 1 + std::max(b_left_height, b_right_height);
 
   // get balance
-  std::cout << "Getting balance: ";
+  // std::cout << "Getting balance: ";
   // int balance = get_balance(b);
   int balance = b_left_height - b_right_height;
-  std::cout << balance << "\n";
+  // std::cout << balance << "\n";
 
   if(balance > 1 && k < ((std::pair<K, V>*)(b_left->data))->first) {
     // left-left
@@ -111,23 +112,25 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
-  std::cout << "find_key " << k << " with curr root @ block addr " << root.addr << "\n";
+  // std::cout << "find_key " << k << " with curr root @ block addr " << root.addr << "\n";
   Block *b = get_block(root.addr, root.leaf_idx);
-  if(b == NULL) std::cout << "ROOT IS NULL?\n";
-  else std::cout << "Got a block ...\n";
+  // if(b == NULL) std::cout << "ROOT IS NULL?\n";
+  // else std::cout << "Got a block ...\n";
 
   MapMetadata b_meta = *(MapMetadata*)(b->metadata);
+  // std::cout << ((std::pair<K, V>*)b->data)->first << " " << ((std::pair<K, V>*)b->data)->second << "\n";
 
-  std::cout << ((std::pair<K, V>*)b->data)->first << " " << ((std::pair<K, V>*)b->data)->second << "\n";
+  // std::cout << "Left addr: " << b_meta.l_child_addr << " | right addr: " << b_meta.r_child_addr << "\n";
+
 
   if(((std::pair<K, V>*)b->data)->first == k) {
-    std::cout << "FOUND!\n";
+    // std::cout << "FOUND KEY: " << k << "!\n";
     return root;
   } else if(((std::pair<K, V>*)b->data)->first < k) {
-    std::cout << "Going right to addr " << b_meta.r_child_addr << "\n"; // TODO this means metadata isn't updated proberly on insertion
+    // std::cout << "Going right to addr " << b_meta.r_child_addr << "\n"; 
     return find_key(k, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
   } else if(((std::pair<K, V>*)b->data)->first > k) {
-    std::cout << "Going left\n";
+    // std::cout << "Going left\n";
     return find_key(k, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
   } else return BlockPtr(0, 0); // impossible case
 }
@@ -215,29 +218,32 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
 
 template<typename K, typename V>
 Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
-  std::cout << "get_block(" << addr << ", " << leaf_idx << ");\n";
+  // std::cout << "get_block(" << addr << ", " << leaf_idx << ");\n";
   Block b;
   b.addr = 0;
 
   // check stash
   if(stash.size() > 0) {
-    std::cout << "---------- CURRENT STASH ----------\n";
+    // std::cout << "---------- CURRENT STASH ----------\n";
   }
   for(auto it = stash.begin(); it != stash.end(); ++it) {
-    std::cout << (*it).addr << " " << (*it).leaf_idx << "\n";
+    // std::cout << (*it).addr << " " << (*it).leaf_idx << ": " << (*it).in_use << "\n";
     if((*it).addr == addr && (*it).leaf_idx == leaf_idx) return &(*it);
   }
   if(stash.size() > 0) {
-    std::cout << "-----------------------------------\n";
+    // std::cout << "-----------------------------------\n";
   }
+
+  // std::cout << "Not found in stash\n";
 
   // check server
   get_blocks(leaf_idx);
+  // std::cout << "did get blocks\n";
   if(stash.size() > 0) {
-    std::cout << "---------- CURRENT STASH ----------\n";
+    // std::cout << "---------- CURRENT STASH ----------\n";
   }
   for(auto it = stash.begin(); it != stash.end(); ++it) {
-    std::cout << (*it).addr << " " << (*it).leaf_idx << "\n";
+    // std::cout << (*it).addr << " " << (*it).leaf_idx << ": " << (*it).in_use << "\n";
     if((*it).addr == addr && (*it).leaf_idx == leaf_idx) {
       b = (*it);
       stash.erase(it, it+1);
@@ -245,11 +251,13 @@ Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
     }
   }
   if(stash.size() > 0 || b.addr != 0) {
-    std::cout << "-----------------------------------\n";
+    // std::cout << "-----------------------------------\n";
   }
   dump_stash(leaf_idx);
 
   if(b.addr == 0) return NULL;
+
+  b.in_use = true;
 
   stash.push_back(b);
   return &stash[stash.size()-1];

@@ -2,7 +2,6 @@
 
 Bucket::Bucket() {
   blocks = std::vector<Block>();
-
 }
 
 bool Bucket::add_block(Block b) {

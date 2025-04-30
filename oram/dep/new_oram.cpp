@@ -105,7 +105,7 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       bool found_block = false;
       for(unsigned int j = 0; j < stash.size(); ++j) {
-	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level)) {
+	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level) && !stash[j].in_use) {
 	  std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
 	  cmd.block = stash[j];
 	  stash.erase(stash.begin()+j, stash.begin()+j+1);
@@ -140,6 +140,7 @@ unsigned int ORAMClient::random_leaf_idx() {
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
   trace();
+  std::cout << "get_blocks(" << leaf_idx << ")\n";
   char buf[sizeof(Cmd)];
 
   Block null_block;
@@ -159,6 +160,7 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     }
     std::cout << "\n";
   }
+  std::cout << "DONE?\n";
 
 }
 
