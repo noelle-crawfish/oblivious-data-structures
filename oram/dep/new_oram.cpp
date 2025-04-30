@@ -115,7 +115,7 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
       }
       if(!found_block) {
 	cmd.block = Block();
-	cmd.block.leaf_idx = leaf_idx;
+	cmd.block.leaf_idx = 0;;
       }
       send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
     }
@@ -149,12 +149,15 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     .leaf_idx = leaf_idx,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  std::cout << "Getting blocks...\n";
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
       if(b->addr != 0) stash.push_back(*b);
+      std::cout << "(" << b->addr << ", " << b->leaf_idx << ") ";
     }
+    std::cout << "\n";
   }
 
 }
@@ -236,9 +239,9 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
       curr->bucket->blocks.push_back(cmd.block);
       std::cout << "(" << cmd.block.addr << ", " << cmd.block.leaf_idx << ") ";
     }
+    std::cout << "\n";
     assert(curr->bucket->blocks.size() == BUCKET_SIZE);
     curr = curr->parent;
-    std::cout << "\n";
  }
  std::cout << "-----------------------------------------------\n";
 }
@@ -247,7 +250,8 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
   trace();
   Node *curr = root;
   std::cout << "---------- GET BLOCKS IDX " << leaf_idx << " ----------\n";
-  while(curr != NULL) {
+  // while(curr != NULL) {
+  for(int i = L-1; i >= 0; --i) { // 2, 1, 0
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
       Cmd cmd = {
 	.opcode = BLOCK,
@@ -260,20 +264,27 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
     std::cout << "\n";
     curr->bucket->clear();
 
-    if((leaf_idx & 0x01) == 0) curr = curr->l_child;
+    if((leaf_idx & (0x01 << (i-1))) == 0) curr = curr->l_child;
     else curr = curr->r_child;
-    leaf_idx >>= 1;
+    // leaf_idx >>= 1;
   }
   std::cout << "-----------------------------------------------\n";
 }
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
   Node *curr = root;
-  for(int i = 0; i < L-1; ++i) {
-    if((leaf_idx & 0x01) == 0) curr = curr->l_child;
-    else curr = curr->r_child;
-    leaf_idx >>= 1;
+  for(int i = L-2; i >= 0; --i) {
+    std::cout << i << " ";
+    if((leaf_idx & (0x01 << i)) == 0) {
+      curr = curr->l_child;
+      std::cout << "left -> ";
+    } else {
+      curr = curr->r_child;
+      std::cout << "right -> ";
+    }
+    // leaf_idx >>= 1;
   }
+  std::cout << "\n";
 
   return curr;
 }

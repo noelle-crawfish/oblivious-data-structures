@@ -48,11 +48,7 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     std::pair<K, V> data = std::pair<K, V>(k, v);
     memcpy(new_block.data, (char*)(&data), sizeof(std::pair<K, V>));
 
-    get_blocks(new_block.leaf_idx);
     stash.push_back(new_block);
-
-    dump_stash(new_block.leaf_idx);
-
     return BlockPtr {.addr = new_block.addr, .leaf_idx = new_block.leaf_idx};
   }
 
@@ -128,7 +124,7 @@ BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
     std::cout << "FOUND!\n";
     return root;
   } else if(((std::pair<K, V>*)b->data)->first < k) {
-    std::cout << "Going right to addr " << b_meta.r_child_addr << "\n";
+    std::cout << "Going right to addr " << b_meta.r_child_addr << "\n"; // TODO this means metadata isn't updated proberly on insertion
     return find_key(k, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
   } else if(((std::pair<K, V>*)b->data)->first > k) {
     std::cout << "Going left\n";
