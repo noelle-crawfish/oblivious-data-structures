@@ -28,7 +28,15 @@ int main() {
   // std::cout << "Read: " << buf << "\n";
 
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
-  client.insert(1, 2);
+  for(int i = 0; i < 8; ++i) {
+    client.insert(i, i*2);
+    std::cout << "Inserted: " << i << ", " << i*2 << "\n";
+  }
+
+  // for(int i = 0; i < 8; ++i) {
+  //   std::cout << client.at(i) << " ";
+  // }
+  // std::cout << "\n";
 
   client.exit();
 

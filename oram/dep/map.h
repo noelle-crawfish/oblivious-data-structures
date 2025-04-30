@@ -37,8 +37,11 @@ class MapClient : public ORAMClient {
 public:
   MapClient(std::string server_addr, int port);
   void insert(K k, V v);
+  bool remove(K k); // TODO
+  V at(K k);
 private:
   BlockPtr insert(K k, V v, BlockPtr root);
+  BlockPtr find_key(K k, BlockPtr root);
   BlockPtr right_rotate(BlockPtr b_ptr); 
   BlockPtr left_rotate(BlockPtr b_ptr);
   int get_balance(Block *b); // get balance of node @ addr

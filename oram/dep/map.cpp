@@ -57,6 +57,19 @@ void MapClient<K, V>::insert(K k, V v) {
 }
 
 template<typename K, typename V>
+bool MapClient<K, V>::remove(K k) {
+
+  return 0;
+}
+
+template<typename K, typename V>
+V MapClient<K, V>::at(K k) {
+  BlockPtr b_ptr = find_key(k, BlockPtr(root_addr, root_leaf));
+  Block b = get_block(b_ptr.addr, b_ptr.leaf_idx);
+  return ((std::pair<K, V>*)b.data)->second;
+}
+
+template<typename K, typename V>
 BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
   Block b;
 
@@ -64,6 +77,9 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     b.addr = ctr;
     b.leaf_idx = random_leaf_idx();
     memset(b.metadata, 0, sizeof(MapMetadata));
+
+    std::pair<K, V> data = std::pair<K, V>(k, v);
+    memcpy(b.data, (char*)(&data), sizeof(std::pair<K, V>));
 
     get_blocks(b.leaf_idx);
     stash.push_back(b);
@@ -114,6 +130,18 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
 
   BlockPtr nop_ptr;
   return nop_ptr;
+}
+
+template<typename K, typename V>
+BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
+  Block b = get_block(root.addr, root.leaf_idx);
+  MapMetadata b_meta = *(MapMetadata*)b.metadata;
+  if(((std::pair<K, V>*)b.data)->first == k) return root;
+  else if(((std::pair<K, V>*)b.data)->first < k)
+    return find_key(k, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
+  else if(((std::pair<K, V>*)b.data)->first > k)
+    return find_key(k, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
+  else return BlockPtr(0, 0); // impossible case
 }
 
 template<typename K, typename V>
