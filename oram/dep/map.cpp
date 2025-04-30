@@ -25,7 +25,8 @@ void MapClient<K, V>::insert(K k, V v) {
 
 template<typename K, typename V>
 bool MapClient<K, V>::remove(K k) {
-
+  std::cout << "Starting removal... key: " << k << "\n";
+  remove(k, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
   return 0;
 }
@@ -119,6 +120,80 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     std::cout << "No rotation\n";
     return root;
   }
+}
+
+template<typename K, typename V>
+BlockPtr MapClient<K, V>::remove(K k, BlockPtr root) {
+  if(root.addr == 0) return root;
+
+  Block *b = get_block(root.addr, root.leaf_idx);
+  MapMetadata b_meta = parse_metadata(b->metadata);
+  std::cout << "Looking for node to remove, at key " << k << "\n";
+
+  if(k < ((std::pair<K, V>*)(b->data))->first) {
+    BlockPtr left = remove(k, BlockPtr{.addr = b_meta.l_child_addr, .leaf_idx = b_meta.l_child_leaf});
+    b_meta.l_child_addr = left.addr;
+    b_meta.l_child_leaf = left.leaf_idx;
+  } else if(k > ((std::pair<K, V>*)(b->data))->first) {
+    BlockPtr right = remove(k, BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
+    b_meta.r_child_addr = right.addr;
+    b_meta.r_child_leaf = right.leaf_idx;
+  } else {
+    std::cout << "Need to remove the root!\n";
+    // remove root
+    if(b_meta.l_child_addr == 0) {
+      root.addr = b_meta.r_child_addr;
+      root.leaf_idx = b_meta.r_child_leaf;
+    } else if(b_meta.r_child_addr == 0) {
+      root.addr = b_meta.l_child_addr;
+      root.leaf_idx = b_meta.l_child_leaf;
+    } else {
+      BlockPtr min_ptr = min_node(BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
+      Block *min_node = get_block(min_ptr.addr, min_ptr.leaf_idx);
+
+      root.addr = min_ptr.addr;
+      root.leaf_idx = min_ptr.leaf_idx;
+
+      BlockPtr right = remove(((std::pair<K, V>*)(min_node->data))->first,
+			      BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf});
+
+      b_meta.r_child_addr = right.addr;
+      b_meta.r_child_leaf = right.leaf_idx;
+    }
+  }
+  serialize_metadata(b->metadata, b_meta);
+
+  if(root.addr == 0) return root; // this means there was only one node, now empty
+
+  // update height
+  Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+  Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+
+  int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
+  int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
+  b_meta.height = 1 + std::max(b_left_height, b_right_height);
+  serialize_metadata(b->metadata, b_meta);
+
+  int balance = b_left_height - b_right_height;
+
+  if(balance > 1 && get_balance(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx}) >= 0) {
+     return right_rotate(root);
+  } else if(balance > 1 && get_balance(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx}) < 0) {
+    BlockPtr new_left = left_rotate(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx});
+    b_meta.l_child_addr = new_left.addr;
+    b_meta.l_child_leaf = new_left.leaf_idx;
+    serialize_metadata(b->metadata, b_meta);
+    return right_rotate(root);
+  } else if(balance < -1 && get_balance(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx}) <= 0) {
+     return left_rotate(root);
+  } else if(balance < -1 && get_balance(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx}) > 0) {
+    BlockPtr new_right = right_rotate(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx});
+    b_meta.r_child_addr = new_right.addr;
+    b_meta.r_child_leaf = new_right.leaf_idx;
+    return left_rotate(root);
+  }
+
+  return root;
 }
 
 template<typename K, typename V>
@@ -220,6 +295,18 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   return new_root_ptr;
 }
 
+template<typename K, typename V>
+BlockPtr MapClient<K, V>::min_node(BlockPtr root) {
+  Block *curr = get_block(root);
+  MapMetadata root_meta = parse_metadata(curr->metadata);
+
+  while(root_meta.r_child_addr != 0) {
+    curr = get_block(root_meta.r_child_addr, root_meta.r_child_leaf);
+    root_meta = parse_metadata(curr->metadata);
+  }
+  return BlockPtr{.addr = curr->addr, .leaf_idx = curr->leaf_idx};
+}
+
 // template<typename K, typename V>
 // int MapClient<K, V>::get_balance(Block *b) {
 //   if(b == NULL) return 0;
@@ -234,6 +321,11 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
 
 //   return m_left.height - m_right.height;
 // }
+
+template<typename K, typename V>
+Block* MapClient<K, V>::get_block(BlockPtr b) {
+  return get_block(b.addr, b.leaf_idx);
+}
 
 template<typename K, typename V>
 Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
@@ -307,4 +399,17 @@ MapMetadata MapClient<K, V>::parse_metadata(char *buf) {
 template<typename K, typename V>
 void MapClient<K, V>::serialize_metadata(char *buf, MapMetadata m) {
   memcpy(buf, (char*)&m, sizeof(MapMetadata));
+}
+
+template<typename K, typename V>
+int MapClient<K, V>::get_balance(BlockPtr b_ptr) {
+  MapMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
+  Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
+  Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+
+  int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
+  int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
+
+  int balance = b_left_height - b_right_height;
+  return balance;
 }

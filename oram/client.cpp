@@ -8,7 +8,7 @@
 #include "queue.h"
 #include "map.h"
 
-#define N 10
+#define N 6
 
 int main() {
   // char data[BLOCK_SIZE] = "Hello, world!\0";
@@ -39,6 +39,8 @@ int main() {
     std::cout << "-----------------------------------------------------------------\n";
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
+
+  client.remove(3);
 
   for(int i = 0; i < N; ++i) {
      std::cout << client.at(i) << " ";
