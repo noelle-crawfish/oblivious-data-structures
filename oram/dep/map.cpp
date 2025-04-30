@@ -43,6 +43,11 @@ V MapClient<K, V>::at(K k) {
 }
 
 template<typename K, typename V>
+int MapClient<K, V>::size() {
+  return ctr;
+}
+
+template<typename K, typename V>
 BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
   // std::cout << "Inserting (" << k << ", " << v << ") - @ addr " << root.addr << "\n";
 

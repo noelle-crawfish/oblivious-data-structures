@@ -100,14 +100,14 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
   cmd.opcode = BLOCK;
   // cmd.leaf_idx = -1; // no longer used
 
-  std::cout << "Dumping stash for leaf idx " << leaf_idx << ": before dump size = " << stash.size() << "\n";
+  // std::cout << "Dumping stash for leaf idx " << leaf_idx << ": before dump size = " << stash.size() << "\n";
 
   for(int level = (L-1); level >= 0; --level) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       bool found_block = false;
       for(unsigned int j = 0; j < stash.size(); ++j) {
 	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level) && !stash[j].in_use) {
-	  std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
+	  // std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
 	  cmd.block = stash[j];
 	  stash.erase(stash.begin()+j, stash.begin()+j+1);
 	  found_block = true;
@@ -122,7 +122,7 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
     }
   }
 
-  std::cout << "Dumping stash: after dump size = " << stash.size() << "\n";
+  // std::cout << "Dumping stash: after dump size = " << stash.size() << "\n";
 
 }
 

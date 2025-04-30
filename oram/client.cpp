@@ -1,12 +1,14 @@
 
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "new_oram.h"
 #include "stack.h"
 #include "queue.h"
 #include "map.h"
 
-#define N 4
+#define N 10
 
 int main() {
   // char data[BLOCK_SIZE] = "Hello, world!\0";
@@ -30,15 +32,17 @@ int main() {
   // std::cout << "Read: " << buf << "\n";
 
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
-  // for(int i = 0; i < N; ++i) {
-  for(int i = N-1; i >=0; --i) {
+  for(int i = 0; i < N; ++i) {
+  // for(int i = N-1; i >=0; --i) {
     client.insert(i, i*2);
     std::cout << "Inserted: " << i << ", " << i*2 << "\n";
     std::cout << "-----------------------------------------------------------------\n";
+    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 
   for(int i = 0; i < N; ++i) {
      std::cout << client.at(i) << " ";
+    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
   std::cout << "\n";
 
