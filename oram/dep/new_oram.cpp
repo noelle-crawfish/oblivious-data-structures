@@ -99,11 +99,14 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
   cmd.opcode = BLOCK;
   // cmd.leaf_idx = -1; // no longer used
 
+  std::cout << "Dumping stash for leaf idx " << leaf_idx << ": before dump size = " << stash.size() << "\n";
+
   for(int level = (L-1); level >= 0; --level) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       bool found_block = false;
       for(unsigned int j = 0; j < stash.size(); ++j) {
 	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level)) {
+	  std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
 	  cmd.block = stash[j];
 	  stash.erase(stash.begin()+j, stash.begin()+j+1);
 	  found_block = true;
@@ -117,6 +120,8 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
       send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
     }
   }
+
+  std::cout << "Dumping stash: after dump size = " << stash.size() << "\n";
 
 }
 
@@ -221,6 +226,7 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
   Node *curr = get_leaf(leaf_idx);
   assert(curr != NULL);
 
+  std::cout << "---------- STASH DUMP IDX " << leaf_idx << " ----------\n";
   while(curr != NULL) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       recv(client_socket, buf, sizeof(Cmd), 0);
@@ -228,15 +234,19 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 
       assert(cmd.opcode == BLOCK);
       curr->bucket->blocks.push_back(cmd.block);
+      std::cout << "(" << cmd.block.addr << ", " << cmd.block.leaf_idx << ") ";
     }
     assert(curr->bucket->blocks.size() == BUCKET_SIZE);
     curr = curr->parent;
+    std::cout << "\n";
  }
+ std::cout << "-----------------------------------------------\n";
 }
 
 void ORAMServer::get_blocks(unsigned int leaf_idx) {
   trace();
   Node *curr = root;
+  std::cout << "---------- GET BLOCKS IDX " << leaf_idx << " ----------\n";
   while(curr != NULL) {
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
       Cmd cmd = {
@@ -245,13 +255,16 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 	.leaf_idx = 0, // unused
       };
       send(client_socket, (char*)(&cmd), sizeof(Cmd), MSG_DONTWAIT);
+      std::cout << "(" << cmd.block.addr << ", " << cmd.block.leaf_idx << ") ";
     }
+    std::cout << "\n";
     curr->bucket->clear();
 
     if((leaf_idx & 0x01) == 0) curr = curr->l_child;
     else curr = curr->r_child;
     leaf_idx >>= 1;
   }
+  std::cout << "-----------------------------------------------\n";
 }
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
