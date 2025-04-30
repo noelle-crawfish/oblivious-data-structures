@@ -32,7 +32,7 @@ private:
   BlockPtr right_rotate(BlockPtr b_ptr); 
   BlockPtr left_rotate(BlockPtr b_ptr);
   int get_balance(Block *b); // get balance of node @ addr
-  Block get_block(unsigned int addr, unsigned int leaf_idx);
+  Block* get_block(unsigned int addr, unsigned int leaf_idx);
   int height(Block *b);
   MapMetadata parse_metadata(char *buf);
   void serialize_metadata(char *buf, MapMetadata m);
