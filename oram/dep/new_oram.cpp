@@ -26,9 +26,10 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
   
   int flag = 1;
   setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
-
-  connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
-
+  int temp = 1; 
+  while(temp != 0) {
+    temp = connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
+  }
   mappings = std::map<unsigned int, unsigned int>();
 }
 
