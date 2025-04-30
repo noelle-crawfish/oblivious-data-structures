@@ -117,7 +117,13 @@ template<typename K, typename V>
 BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
   std::cout << "find_key " << k << " with curr root @ block addr " << root.addr << "\n";
   Block *b = get_block(root.addr, root.leaf_idx);
-  MapMetadata b_meta = *(MapMetadata*)b->metadata;
+  if(b == NULL) std::cout << "ROOT IS NULL?\n";
+  else std::cout << "Got a block ...\n";
+
+  MapMetadata b_meta = *(MapMetadata*)(b->metadata);
+
+  std::cout << ((std::pair<K, V>*)b->data)->first << " " << ((std::pair<K, V>*)b->data)->second << "\n";
+
   if(((std::pair<K, V>*)b->data)->first == k) {
     std::cout << "FOUND!\n";
     return root;
@@ -213,22 +219,37 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
 
 template<typename K, typename V>
 Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
+  std::cout << "get_block(" << addr << ", " << leaf_idx << ");\n";
   Block b;
   b.addr = 0;
 
   // check stash
+  if(stash.size() > 0) {
+    std::cout << "---------- CURRENT STASH ----------\n";
+  }
   for(auto it = stash.begin(); it != stash.end(); ++it) {
+    std::cout << (*it).addr << " " << (*it).leaf_idx << "\n";
     if((*it).addr == addr && (*it).leaf_idx == leaf_idx) return &(*it);
+  }
+  if(stash.size() > 0) {
+    std::cout << "-----------------------------------\n";
   }
 
   // check server
   get_blocks(leaf_idx);
+  if(stash.size() > 0) {
+    std::cout << "---------- CURRENT STASH ----------\n";
+  }
   for(auto it = stash.begin(); it != stash.end(); ++it) {
+    std::cout << (*it).addr << " " << (*it).leaf_idx << "\n";
     if((*it).addr == addr && (*it).leaf_idx == leaf_idx) {
       b = (*it);
       stash.erase(it, it+1);
       break;
     }
+  }
+  if(stash.size() > 0 || b.addr != 0) {
+    std::cout << "-----------------------------------\n";
   }
   dump_stash(leaf_idx);
 
