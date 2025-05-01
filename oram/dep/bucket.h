@@ -6,7 +6,7 @@
 
 #include "block.h"
 
-#define BUCKET_SIZE 4
+#define BUCKET_SIZE 16
 
 class Bucket {
  public:

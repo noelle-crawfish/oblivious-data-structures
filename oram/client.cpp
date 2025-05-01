@@ -32,7 +32,7 @@ int main() {
   // std::cout << "Read: " << buf << "\n";
 
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
-  for(int i = 0; i < N; ++i) {
+  for(int i = 1; i <= N; ++i) {
   // for(int i = N-1; i >=0; --i) {
     client.insert(i, i*2);
     std::cout << "Inserted: " << i << ", " << i*2 << "\n";
@@ -42,8 +42,8 @@ int main() {
 
   client.remove(3);
 
-  for(int i = 0; i < N; ++i) {
-     std::cout << client.at(i) << " ";
+  for(int i = 1; i <= N; ++i) {
+     if(i != 3) std::cout << client.at(i) << " ";
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
   std::cout << "\n";
