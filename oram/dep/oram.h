@@ -28,8 +28,8 @@ class ORAM {
   int write(unsigned int addr, char data[BLOCK_SIZE], char metadata[METADATA_SIZE]);
  private:
   Node *root;
- std::map<unsigned int, unsigned int> mappings;
- std::vector<Block> stash;
+  std::map<unsigned int, unsigned int> mappings;
+  std::vector<Block> stash;
 
   void traverse_path(unsigned int leaf_idx);
   void dump_stash(unsigned int leaf_idx);

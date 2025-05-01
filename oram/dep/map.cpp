@@ -12,6 +12,7 @@ MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(serve
 
 template<typename K, typename V>
 void MapClient<K, V>::insert(K k, V v) {
+  std::cout << "ROOT: " << root_addr << " " << root_leaf << "\n";
   BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
 
   root_addr = b_ptr.addr;
@@ -21,11 +22,13 @@ void MapClient<K, V>::insert(K k, V v) {
   // std::cout << "New metadata: " << b_meta.l_child_addr << " " << b_meta.r_child_addr << "\n";
 
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
+  std::cout << "ROOT: " << root_addr << " " << root_leaf << "\n";
 }
 
 template<typename K, typename V>
 bool MapClient<K, V>::remove(K k) {
   std::cout << "Starting removal... key: " << k << "\n";
+  std::cout << "ROOT: " << root_addr << " " << root_leaf << "\n";
   remove(k, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
   return 0;
@@ -126,6 +129,7 @@ template<typename K, typename V>
 BlockPtr MapClient<K, V>::remove(K k, BlockPtr root) {
   if(root.addr == 0) return root;
 
+  std::cout << "Current root..." << root.addr << " " << root.leaf_idx << "\n";
   Block *b = get_block(root.addr, root.leaf_idx);
   MapMetadata b_meta = parse_metadata(b->metadata);
   std::cout << "Looking for node to remove, at key " << k << "\n";
@@ -162,10 +166,13 @@ BlockPtr MapClient<K, V>::remove(K k, BlockPtr root) {
     }
   }
   serialize_metadata(b->metadata, b_meta);
+  std::cout << "Post-processing... ";
 
   if(root.addr == 0) return root; // this means there was only one node, now empty
+  std::cout << "non-null node\n";
 
   // update height
+  std::cout << "Update height...";
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
 
@@ -174,24 +181,34 @@ BlockPtr MapClient<K, V>::remove(K k, BlockPtr root) {
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
   serialize_metadata(b->metadata, b_meta);
 
+  std::cout << "DONE!\n";
+
   int balance = b_left_height - b_right_height;
 
   if(balance > 1 && get_balance(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx}) >= 0) {
-     return right_rotate(root);
+    std::cout << "A\n";
+    return right_rotate(root);
   } else if(balance > 1 && get_balance(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx}) < 0) {
+    std::cout << "B\n";
     BlockPtr new_left = left_rotate(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx});
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
     serialize_metadata(b->metadata, b_meta);
     return right_rotate(root);
   } else if(balance < -1 && get_balance(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx}) <= 0) {
-     return left_rotate(root);
+    std::cout << "C\n";
+    BlockPtr b = left_rotate(root);
+    std::cout << "Rotated\n";
+    return b;
   } else if(balance < -1 && get_balance(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx}) > 0) {
+    std::cout << "D\n";
     BlockPtr new_right = right_rotate(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx});
     b_meta.r_child_addr = new_right.addr;
     b_meta.r_child_leaf = new_right.leaf_idx;
     return left_rotate(root);
   }
+
+  std::cout << "No rebalancing needed\n";
 
   return root;
 }
@@ -260,6 +277,8 @@ BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
+  // TODO why are we getting illegal leaf indexes?
+  std::cout << "LEFT ROTATE " << b_ptr.addr << ", " << b_ptr.leaf_idx << "\n";
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   MapMetadata b_meta = parse_metadata(b->metadata);
 
