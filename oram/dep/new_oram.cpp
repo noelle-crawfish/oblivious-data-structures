@@ -2,12 +2,13 @@
 
 #include <iostream>
 #include <cstdarg>
+#include <arpa/inet.h> // required for inet_pton
 // TODO eventually move node here
  
-// #define TRACE 0 // comment thiis to disable trace
+#define TRACE 0 // comment thiis to disable trace
 
 #ifdef TRACE // if you want actual msgs you have to use fprintf i think 
-#define trace() std::cout << "This line hit: "<< __LINE__ << "\n"
+#define trace() std::cout << "\n This line hit: "<< __LINE__ << "\n"
 #else
 #define trace() do {} while(0)
 #endif
@@ -21,8 +22,10 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
   sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(port);
-  server_addr.sin_addr.s_addr = INADDR_ANY; // server_ip; // INADDR_ANY? for testing...
-
+  if (inet_pton(AF_INET, server_ip.c_str(), &server_addr.sin_addr) <= 0) {
+    perror("inet_pton");
+    return;
+  }
   
   int flag = 1;
   setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
@@ -140,7 +143,6 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
-  trace();
   // std::cout << "get_blocks(" << leaf_idx << ")\n";
   char buf[sizeof(Cmd)];
 
@@ -150,6 +152,7 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     .block = null_block,
     .leaf_idx = leaf_idx,
   };
+  trace();
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
   // std::cout << "Getting blocks...\n";
   for(int level = 0; level < L; ++level) {
@@ -171,6 +174,7 @@ void ORAMClient::exit() {
     .leaf_idx = 0,
   };
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  close(client_socket);
 }
 
 /* --------------------------------------------- */
@@ -188,7 +192,7 @@ ORAMServer::ORAMServer(uint16_t port) {
   int flag = 1;
   setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 
-  int sndbuf_size = 4*sizeof(Cmd); // idek if this is needed
+  int sndbuf_size = sizeof(Cmd); // idek if this is needed
   setsockopt(server_socket, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size));
 
   bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
@@ -203,6 +207,8 @@ void ORAMServer::run() {
   while(!done) {
     char buf[sizeof(Cmd)];
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
+
+    trace();
     if(bytes > 0) {
       Cmd *cmd = (Cmd*)buf;
 
@@ -215,6 +221,7 @@ void ORAMServer::run() {
 	break;
       case EXIT:
 	done = true;
+        close(client_socket);
       default:
 	break;
       }
@@ -259,7 +266,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 	.block = *it,
 	.leaf_idx = 0, // unused
       };
-      send(client_socket, (char*)(&cmd), sizeof(Cmd), MSG_DONTWAIT);
+      send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
       std::cout << "(" << cmd.block.addr << ", " << cmd.block.leaf_idx << ") ";
     }
     std::cout << "\n";
