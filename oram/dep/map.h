@@ -26,8 +26,8 @@ public:
   void insert(K k, V v);
   bool remove(K k);
   V at(K k);
-  bool contains(K k); // TODO
-  int size(); // TODO going to break once remove is implemented
+  bool contains(K k);
+  int size(); 
 private:
   BlockPtr insert(K k, V v, BlockPtr root);
   BlockPtr remove(K k, BlockPtr root);
@@ -44,6 +44,7 @@ private:
 
   unsigned int root_addr, root_leaf;
   int ctr;
+  int entries;
 };
 
 

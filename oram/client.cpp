@@ -40,7 +40,9 @@ int main() {
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 
+  std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
   client.remove(3);
+  std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
 
   for(int i = 1; i <= N; ++i) {
      if(i != 3) std::cout << client.at(i) << " ";

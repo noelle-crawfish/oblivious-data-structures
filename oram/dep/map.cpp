@@ -8,10 +8,12 @@ template<typename K, typename V>
 MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
   root_addr = 0, root_leaf = 0;
   ctr = 0;
+  entries = 0;
 }
 
 template<typename K, typename V>
 void MapClient<K, V>::insert(K k, V v) {
+  ++entries;
   std::cout << "ROOT: " << root_addr << " " << root_leaf << "\n";
   BlockPtr b_ptr = insert(k, v, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
 
@@ -21,12 +23,18 @@ void MapClient<K, V>::insert(K k, V v) {
   // std::cout << "New root after insert: " << b_ptr.addr << " " << b_ptr.leaf_idx << "\n";
   // std::cout << "New metadata: " << b_meta.l_child_addr << " " << b_meta.r_child_addr << "\n";
 
+  unsigned int random_dump_leaf_idx = random_leaf_idx();
+  get_blocks(random_dump_leaf_idx);
+  // get_blocks(root_leaf);
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
+  // dump_stash(root_leaf);
+  dump_stash(random_dump_leaf_idx);
   std::cout << "ROOT: " << root_addr << " " << root_leaf << "\n";
 }
 
 template<typename K, typename V>
 bool MapClient<K, V>::remove(K k) {
+  --entries;
   std::cout << "Starting removal... key: " << k << "\n";
   std::cout << "ROOT: " << root_addr << " " << root_leaf << "\n";
   remove(k, BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
@@ -47,8 +55,16 @@ V MapClient<K, V>::at(K k) {
 }
 
 template<typename K, typename V>
+bool MapClient<K, V>::contains(K k) {
+  BlockPtr b_ptr = find_key(k, BlockPtr(root_addr, root_leaf));
+
+  for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
+  return b_ptr.addr != 0;
+}
+
+template<typename K, typename V>
 int MapClient<K, V>::size() {
-  return ctr;
+  return entries;
 }
 
 template<typename K, typename V>
@@ -215,6 +231,7 @@ BlockPtr MapClient<K, V>::remove(K k, BlockPtr root) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
+  if(root.addr == 0) return root;
   // std::cout << "find_key " << k << " with curr root @ block addr " << root.addr << "\n";
   Block *b = get_block(root.addr, root.leaf_idx);
   // if(b == NULL) std::cout << "ROOT IS NULL?\n";
