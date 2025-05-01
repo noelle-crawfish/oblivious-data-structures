@@ -9,7 +9,7 @@
 #include "bucket.h"
 
 #define L 4
-#define N_LEAVES (2 << L)
+#define N_LEAVES (2 << (L-1) )
 
 class Node {
  public:

@@ -207,7 +207,10 @@ void ORAMServer::run() {
   while(!done) {
     char buf[sizeof(Cmd)];
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
-
+    std::cout << bytes; 
+    if (bytes == 0) {
+      return; 
+    }
     trace();
     if(bytes > 0) {
       Cmd *cmd = (Cmd*)buf;
