@@ -44,10 +44,15 @@ bool MapClient<K, V>::remove(K k) {
 
 template<typename K, typename V>
 V MapClient<K, V>::at(K k) {
-  std::cout << "at(" << k << ");\n";
+  // std::cout << "at(" << k << ");\n";
   // std::cout << "stash size: " << stash.size() << "\n";
 
   BlockPtr b_ptr = find_key(k, BlockPtr(root_addr, root_leaf));
+  // std::cout << b_ptr.addr << " " << b_ptr.leaf_idx << "\n";
+  if(b_ptr.addr == 0) {
+    std::cout << "BAD RESULT: " << k << "\n";
+    return 0;
+  }
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
 
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
@@ -131,9 +136,19 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     return left_rotate(root);
   } else if(balance > 1 && k > ((std::pair<K, V>*)(b_left->data))->first) {
     // left-right
+    std::cout << "left-right\n";
+    BlockPtr new_left = left_rotate(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx});
+    b_meta.l_child_addr = new_left.addr;
+    b_meta.l_child_leaf = new_left.leaf_idx;
+    serialize_metadata(b->metadata, b_meta);
     return right_rotate(root);
   } else if(balance < -1 && k < ((std::pair<K, V>*)(b_right->data))->first) {
     // right-left
+    std::cout << "right-left\n";
+    BlockPtr new_right = right_rotate(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx});
+    b_meta.r_child_addr = new_right.addr;
+    b_meta.r_child_leaf = new_right.leaf_idx;
+    serialize_metadata(b->metadata, b_meta);
     return left_rotate(root);
   } else {
     // std::cout << "No rotation\n";
@@ -257,6 +272,7 @@ BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
+  // std::cout << "RIGHT ROTATE\n";
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   MapMetadata b_meta = parse_metadata(b->metadata);
 
@@ -295,10 +311,11 @@ BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   // TODO why are we getting illegal leaf indexes?
-  // std::cout << "LEFT ROTATE " << b_ptr.addr << ", " << b_ptr.leaf_idx << "\n";
+  std::cout << "LEFT ROTATE " << b_ptr.addr << ", " << b_ptr.leaf_idx << "\n";
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   MapMetadata b_meta = parse_metadata(b->metadata);
 
+  std::cout << "NEW__ROOT " << b_meta.r_child_addr << "\n";
   Block *new_root = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
   MapMetadata new_root_meta = parse_metadata(new_root->metadata);
 

@@ -8,7 +8,7 @@
 #include "queue.h"
 #include "map.h"
 
-#define N 15
+#define N 100
 
 void stack_test() {
   char data[BLOCK_SIZE];
@@ -21,7 +21,7 @@ void stack_test() {
     client.push(data);
     std::cout << i << " ";
   }
-  std::cout << "\n";
+  std::cout << "\n\n";
 
   for(int i = 1; i <= N; ++i) {
     client.pop(data);
@@ -43,7 +43,7 @@ void queue_test() {
     client.push(data);
     std::cout << i << " ";
   }
-  std::cout << "\n";
+  std::cout << "\n\n";
 
   for(int i = 1; i <= N; ++i) {
     client.pop(data);
@@ -58,7 +58,7 @@ void queue_test() {
 void map_test() {
 
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
-  for(int i = 1; i <= N; ++i) {
+  for(int i = 1; i < N; ++i) {
   // for(int i = N-1; i >=0; --i) {
     client.insert(i, i*2);
     std::cout << "Inserted: " << i << ", " << i*2 << "\n";
@@ -66,16 +66,23 @@ void map_test() {
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 
-  for(int i = 1; i <= N; ++i) {
-    if(i != 3) std::cout << "client.at(" << i << ") = " << client.at(i) << " ";
-    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+  for(int i = 6; i < 9; ++i) {
+    if(client.contains(i)) client.remove(i);
+  }
+
+  std::cout << "Size of tree: " << client.size() << "\n";
+
+  for(int i = 1; i < N; ++i) {
+    // if(i < 5 && i >= 10)
+    if(client.contains(i)) std::cout << "client.at(" << i << ") = " << client.at(i) << " \n";
+     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
   std::cout << "\n";
 
-
-  // std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
-  // client.remove(3);
-  // std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
+  std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
+  client.remove(3);
+  std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
 
   client.exit();
 }
