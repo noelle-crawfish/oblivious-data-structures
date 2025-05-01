@@ -5,7 +5,7 @@
 #include <arpa/inet.h> // required for inet_pton
 // TODO eventually move node here
  
-#define TRACE 0 // comment thiis to disable trace
+// #define TRACE 0 // comment thiis to disable trace
 
 #ifdef TRACE // if you want actual msgs you have to use fprintf i think 
 #define trace() std::cout << "\n This line hit: "<< __LINE__ << "\n"
