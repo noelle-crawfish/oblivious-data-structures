@@ -6,8 +6,8 @@ template class MapClient<int, int>;
 
 template<typename K, typename V>
 MapClient<K, V>::MapClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
-  
   root_addr = 0, root_leaf = 0;
+  ctr = 0;
 }
 
 template<typename K, typename V>
