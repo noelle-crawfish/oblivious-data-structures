@@ -138,6 +138,7 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     // left-right
     std::cout << "left-right\n";
     BlockPtr new_left = left_rotate(BlockPtr{.addr = b_left->addr, .leaf_idx = b_left->leaf_idx});
+    std::cout << "OK\n";
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
     serialize_metadata(b->metadata, b_meta);
@@ -272,7 +273,7 @@ BlockPtr MapClient<K, V>::find_key(K k, BlockPtr root) {
 
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
-  // std::cout << "RIGHT ROTATE\n";
+  std::cout << "RIGHT ROTATE\n";
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   MapMetadata b_meta = parse_metadata(b->metadata);
 
@@ -294,9 +295,19 @@ BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
-  MapMetadata new_root_left_meta = parse_metadata(get_block(new_root_meta.l_child_addr,
+  MapMetadata null_metadata = {
+    .l_child_leaf = 0,
+    .l_child_addr = 0,
+    .r_child_leaf = 0,
+    .r_child_addr = 0,
+    .height = 0,
+  };
+  
+  MapMetadata new_root_left_meta =
+    (b_left == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.l_child_addr,
 							    new_root_meta.l_child_leaf)->metadata);
-  MapMetadata new_root_right_meta = parse_metadata(get_block(new_root_meta.r_child_addr,
+  MapMetadata new_root_right_meta =
+    (b_right == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.r_child_addr,
 							     new_root_meta.r_child_leaf)->metadata);
   new_root_meta.height = 1 + std::max(new_root_left_meta.height, new_root_right_meta.height);
 
@@ -326,6 +337,7 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   new_root_meta.l_child_addr = b->addr; // new root's left child is the old root
   new_root_meta.l_child_leaf = b->leaf_idx;
 
+  std::cout << "update heights\n";
   // update heights
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
@@ -334,16 +346,29 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
-  MapMetadata new_root_left_meta = parse_metadata(get_block(new_root_meta.l_child_addr,
+  std::cout << "update metadata\n";
+  MapMetadata null_metadata = {
+    .l_child_leaf = 0,
+    .l_child_addr = 0,
+    .r_child_leaf = 0,
+    .r_child_addr = 0,
+    .height = 0,
+  };
+  
+  MapMetadata new_root_left_meta =
+    (b_left == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.l_child_addr,
 							    new_root_meta.l_child_leaf)->metadata);
-  MapMetadata new_root_right_meta = parse_metadata(get_block(new_root_meta.r_child_addr,
+  MapMetadata new_root_right_meta =
+    (b_right == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.r_child_addr,
 							     new_root_meta.r_child_leaf)->metadata);
   new_root_meta.height = 1 + std::max(new_root_left_meta.height, new_root_right_meta.height);
 
+  std::cout << "serialize_metadata\n";
   // copy metadata back in
   serialize_metadata(b->metadata, b_meta);
   serialize_metadata(new_root->metadata, new_root_meta);
 
+  std::cout << "RETURN " << new_root->addr << "\n";
   BlockPtr new_root_ptr {.addr = new_root->addr, .leaf_idx = new_root->leaf_idx};
   return new_root_ptr;
 }
