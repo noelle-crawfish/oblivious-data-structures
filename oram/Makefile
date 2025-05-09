@@ -1,7 +1,7 @@
 # Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -O2 -I./dep
-
+CXX = g++ -g
+CXXFLAGS = -std=c++23 -Wall -Wextra -g -I./dep 
+DEBUGFLAGS = -std=c++23 -Wall -Wextra -g -I./dep
 # Files
 # SRC = main.cpp 
 HDR = $(shell find $(PWD)/dep -name '*.h')
@@ -12,6 +12,10 @@ TARGET = oram
 # Default rule
 all: client server 
 
+debugclient: $(OBJ)
+	$(CXX) $(DEBUGFLAGS) client.cpp -o client $^ 
+debugserver: $(OBJ)
+	$(CXX) $(DEBUGFLAGS) server.cpp -o server $^ 
 # Linking
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) main.cpp -o $@ $^
