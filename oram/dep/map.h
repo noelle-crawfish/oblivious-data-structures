@@ -28,6 +28,7 @@ public:
   V at(K k);
   bool contains(K k);
   int size(); 
+  void prefix_print();
 private:
   BlockPtr insert(K k, V v, BlockPtr root);
   BlockPtr remove(K k, BlockPtr root);
@@ -41,6 +42,8 @@ private:
   int height(Block *b);
   MapMetadata parse_metadata(char *buf);
   void serialize_metadata(char *buf, MapMetadata m);
+
+  void prefix_print(BlockPtr b_ptr);
 
   unsigned int root_addr, root_leaf;
   int ctr;

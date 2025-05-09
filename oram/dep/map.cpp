@@ -82,7 +82,16 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     new_block.addr = ++ctr;
     new_block.leaf_idx = random_leaf_idx();
     new_block.in_use = true;
-    memset(new_block.metadata, 0, sizeof(MapMetadata));
+
+    MapMetadata metadata = {
+	.l_child_leaf = 0,
+	.l_child_addr = 0,
+	.r_child_leaf = 0,
+	.r_child_addr = 0,
+	.height = 1, 
+    };
+
+    serialize_metadata(new_block.metadata, metadata);
 
     std::pair<K, V> data = std::pair<K, V>(k, v);
     memcpy(new_block.data, (char*)(&data), sizeof(std::pair<K, V>));
@@ -147,6 +156,7 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     // right-left
     std::cout << "right-left\n";
     BlockPtr new_right = right_rotate(BlockPtr{.addr = b_right->addr, .leaf_idx = b_right->leaf_idx});
+    std::cout << "OK\n";
     b_meta.r_child_addr = new_right.addr;
     b_meta.r_child_leaf = new_right.leaf_idx;
     serialize_metadata(b->metadata, b_meta);
@@ -322,11 +332,11 @@ BlockPtr MapClient<K, V>::right_rotate(BlockPtr b_ptr) {
 template<typename K, typename V>
 BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   // TODO why are we getting illegal leaf indexes?
-  std::cout << "LEFT ROTATE " << b_ptr.addr << ", " << b_ptr.leaf_idx << "\n";
+  std::cout << "LEFT ROTATE " << b_ptr.addr << "\n";
   Block *b = get_block(b_ptr.addr, b_ptr.leaf_idx);
   MapMetadata b_meta = parse_metadata(b->metadata);
 
-  std::cout << "NEW__ROOT " << b_meta.r_child_addr << "\n";
+  std::cout << "NEW_ROOT " << b_meta.r_child_addr << "\n";
   Block *new_root = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
   MapMetadata new_root_meta = parse_metadata(new_root->metadata);
 
@@ -337,13 +347,14 @@ BlockPtr MapClient<K, V>::left_rotate(BlockPtr b_ptr) {
   new_root_meta.l_child_addr = b->addr; // new root's left child is the old root
   new_root_meta.l_child_leaf = b->leaf_idx;
 
-  std::cout << "update heights\n";
   // update heights
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
 
   int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
+
+  std::cout << "left height: " << b_left_height << " | right height: " << b_right_height << "\n";
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
   std::cout << "update metadata\n";
@@ -490,4 +501,26 @@ int MapClient<K, V>::get_balance(BlockPtr b_ptr) {
 
   int balance = b_left_height - b_right_height;
   return balance;
+}
+
+template<typename K, typename V>
+void MapClient<K, V>::prefix_print() {
+  prefix_print(BlockPtr{.addr = root_addr, .leaf_idx = root_leaf});
+  std::cout << "\n";
+  for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
+}
+
+template<typename K, typename V>
+void MapClient<K, V>::prefix_print(BlockPtr b_ptr) {
+  if(b_ptr.addr == 0) {
+    return;
+  }
+
+  Block *b = get_block(b_ptr);
+  std::cout << ((std::pair<K, V>*)b->data)->second << " ";
+
+  MapMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
+
+  prefix_print(BlockPtr{.addr = b_meta.l_child_addr, .leaf_idx = b_meta.l_child_leaf}); // left
+  prefix_print(BlockPtr{.addr = b_meta.r_child_addr, .leaf_idx = b_meta.r_child_leaf}); // left
 }

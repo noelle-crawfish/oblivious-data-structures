@@ -56,15 +56,19 @@ void queue_test() {
 }
 
 void map_test() {
+  char tmp;
 
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
   for(int i = 1; i < N; ++i) {
   // for(int i = N-1; i >=0; --i) {
-    client.insert(i, i*2);
-    std::cout << "Inserted: " << i << ", " << i*2 << "\n";
+    client.insert(i, i);
+    std::cout << "Inserted: " << i << ", " << i << "\n";
+    client.prefix_print();
     std::cout << "-----------------------------------------------------------------\n";
+    std::cin >> tmp;
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
+  exit(0);
 
 
   for(int i = 6; i < 9; ++i) {
@@ -83,6 +87,7 @@ void map_test() {
   std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
   client.remove(3);
   std::cout << "Does key 3 exist? " << client.contains(3) << "\n";
+
 
   client.exit();
 }
