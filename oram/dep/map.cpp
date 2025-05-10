@@ -83,6 +83,8 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
     new_block.leaf_idx = random_leaf_idx();
     new_block.in_use = true;
 
+    std::cout << "NEW BLOCK @ ADDR " << new_block.addr << " leaf idx " << new_block.leaf_idx << "\n";
+
     MapMetadata metadata = {
 	.l_child_leaf = 0,
 	.l_child_addr = 0,
@@ -129,7 +131,7 @@ BlockPtr MapClient<K, V>::insert(K k, V v, BlockPtr root) {
   // std::cout << "Updating height\n";
   int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
-  ((MapMetadata*)(b->metadata))->height = 1 + std::max(b_left_height, b_right_height);
+  b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
   // get balance
   // std::cout << "Getting balance: ";
@@ -418,6 +420,9 @@ Block* MapClient<K, V>::get_block(BlockPtr b) {
 
 template<typename K, typename V>
 Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
+  if(addr == 0) {
+    return NULL;
+  }
   // std::cout << "get_block(" << addr << ", " << leaf_idx << ");\n";
   Block b;
   b.addr = 0;
@@ -449,7 +454,7 @@ Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
     // std::cout << (*it).addr << " " << (*it).leaf_idx << ": " << (*it).in_use << "\n";
     if((*it).addr == addr && (*it).leaf_idx == leaf_idx) {
       b = (*it);
-      stash.erase(it, it+1);
+      stash.erase(it, std::next(it));
       break;
     }
   }
@@ -458,12 +463,16 @@ Block* MapClient<K, V>::get_block(unsigned int addr, unsigned int leaf_idx) {
   }
   dump_stash(leaf_idx);
 
-  if(b.addr == 0) return NULL;
+  if(b.addr == 0) {
+    std::cout << "b.addr == NULL\n";
+    std::cout << "addr: " << addr << " leaf idx " << leaf_idx << "\n";
+    return NULL;
+  }
 
   b.in_use = true;
 
   stash.push_back(b);
-  return &stash[stash.size()-1];
+  return &stash.back();
 }
 
 template<typename K, typename V>

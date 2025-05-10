@@ -22,6 +22,7 @@ public:
   int pop(char *buf);
   bool empty();
   int size();
+  int stash_size();
 private:
   unsigned int ctr;
   unsigned int last_leaf;

@@ -20,14 +20,14 @@ debugserver: $(OBJ)
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) main.cpp -o $@ $^
 
-client: $(OBJ)
-	$(CXX) $(CXXFLAGS) client.cpp -o client $^
+client: $(OBJ) client.o
+	$(CXX) $(CXXFLAGS) -o client $^
 
-server: $(OBJ)
-	$(CXX) $(CXXFLAGS) server.cpp -o server $^
+server: $(OBJ) server.o
+	$(CXX) $(CXXFLAGS) -o server $^
 
 # Compiling
-%.o: %.cpp
+%.o: %.cpp 
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean rule

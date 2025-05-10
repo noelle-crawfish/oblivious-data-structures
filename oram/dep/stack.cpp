@@ -34,7 +34,7 @@ void StackClient::push(char data[BLOCK_SIZE]) {
   get_blocks(leaf_idx);
 
   stash.push_back(Block(++ctr, data));
-  Block *b = &stash[stash.size()-1];
+  Block *b = &stash.back();
 
   b->leaf_idx = leaf_idx;
   memcpy(b->metadata, (char*)(&last_leaf), sizeof(unsigned int));
@@ -57,7 +57,7 @@ int StackClient::pop(char *buf) {
     if(it->addr == ctr) {
       last_leaf = *(unsigned int*)(&(*it).metadata);
       memcpy(buf, (*it).data, BLOCK_SIZE);
-      stash.erase(it, it+1);
+      stash.erase(it, std::next(it));
       break;
     }
   }
@@ -74,4 +74,8 @@ bool StackClient::empty() {
 
 int StackClient::size() {
   return ctr;
+}
+
+int StackClient::stash_size() {
+  return stash.size();
 }

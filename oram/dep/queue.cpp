@@ -43,7 +43,7 @@ void QueueClient::push(char data[BLOCK_SIZE]) {
   get_blocks(leaf_idx);
 
   stash.push_back(Block(tail++, data));
-  Block *b = &stash[stash.size()-1];
+  Block *b = &stash.back();
 
   b->leaf_idx = leaf_idx;
   next_leaf = random_leaf_idx();
@@ -64,7 +64,7 @@ int QueueClient::pop(char *buf) {
     if(it->addr == head) {
       front_leaf = *(unsigned int*)(&(*it).metadata);
       memcpy(buf, (*it).data, BLOCK_SIZE);
-      stash.erase(it, it+1);
+      stash.erase(it, std::next(it));
       break;
     }
   }

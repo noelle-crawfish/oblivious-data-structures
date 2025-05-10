@@ -1,6 +1,8 @@
 #ifndef ORAM2_H
 #define ORAM2_H
 
+#include <list>
+
 /* #include <rpc/client.h> */
 /* #include <rpc/server.h> */
 
@@ -44,7 +46,7 @@ class ORAMClient {
   void get_blocks(unsigned int leaf_idx); // modifies the stash
 
  std::map<unsigned int, unsigned int> mappings;
- std::vector<Block> stash;
+ std::list<Block> stash;
  int client_socket;
 };
 

@@ -109,10 +109,12 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
     for(int i = 0; i < BUCKET_SIZE; ++i) {
       bool found_block = false;
       for(unsigned int j = 0; j < stash.size(); ++j) {
-	if(on_path_at_level(stash[j].leaf_idx, leaf_idx, level) && !stash[j].in_use) {
+	auto stash_at_j = stash.begin();
+	std::advance(stash_at_j, j);
+	if(on_path_at_level(stash_at_j->leaf_idx, leaf_idx, level) && !stash_at_j->in_use) {
 	  // std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
-	  cmd.block = stash[j];
-	  stash.erase(stash.begin()+j, stash.begin()+j+1);
+	  cmd.block = *stash_at_j;
+	  stash.erase(stash_at_j, std::next(stash_at_j));
 	  found_block = true;
 	  break;
 	}
