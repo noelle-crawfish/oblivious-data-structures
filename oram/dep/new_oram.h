@@ -20,6 +20,9 @@
 
 #include "oram.h"
 
+// 16 bytes = 128 bits -> std for AES
+#define AES_BLOCK_SIZE 16
+
 enum Opcode {
   BLOCK, // single block in a sequence (use after starting bulk send)
   GET_BLOCKS,
@@ -46,10 +49,15 @@ class ORAMClient {
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
   unsigned int random_leaf_idx();
   void get_blocks(unsigned int leaf_idx); // modifies the stash
+  Block encrypt_block(Block b);
+  Block decrypt_block(Block b);
+  void fill_random_data(char *buf, unsigned int num_bytes);
 
- std::map<unsigned int, unsigned int> mappings;
- std::list<Block> stash;
- int client_socket;
+  std::vector<unsigned char> *key;
+  std::vector<unsigned char> *iv;
+  std::map<unsigned int, unsigned int> mappings;
+  std::list<Block> stash;
+  int client_socket;
 };
 
 class ORAMServer {

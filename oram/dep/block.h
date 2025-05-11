@@ -9,6 +9,7 @@ class Block {
  public:
   Block();
   Block(unsigned int addr, char data[BLOCK_SIZE]);
+  unsigned int nonce;
   unsigned int addr;
   unsigned int leaf_idx;
   char data[BLOCK_SIZE];

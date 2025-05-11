@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++ -g
-CXXFLAGS = -std=c++23 -Wall -Wextra -g -I./dep 
+CXXFLAGS = -std=c++23 -Wall -Wextra -g -I./dep -lcrypto
 DEBUGFLAGS = -std=c++23 -Wall -Wextra -g -I./dep
 # Files
 # SRC = main.cpp 

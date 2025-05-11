@@ -1,11 +1,15 @@
-#include "new_oram.h"
 
 #include <iostream>
 #include <queue>
+#include <random>
 #include <cstdarg>
 #include <arpa/inet.h> // required for inet_pton
 // TODO eventually move node here
+
+#include <openssl/evp.h>
+#include <openssl/rand.h>
  
+#include "new_oram.h"
 // #define TRACE 0 // comment thiis to disable trace
 
 #ifdef TRACE // if you want actual msgs you have to use fprintf i think 
@@ -17,6 +21,13 @@
 /* --------------------------------------------- */
 
 ORAMClient::ORAMClient(std::string server_ip, int port) {
+  // generate AES key
+  // key = new std::vector<unsigned char>(32); 
+  // iv = new std::vector<unsigned char>(16); 
+
+  // RAND_bytes(key.data(), key.size());
+  // RAND_bytes(iv.data(), iv.size());
+
   std::cout << server_ip << "\n";
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -47,7 +58,6 @@ int ORAMClient::read(char *buf, unsigned int addr) {
   get_blocks(leaf_idx);
 
   for(auto it = stash.begin(); it != stash.end(); ++it) {
-    // TODO need some decoding ot happen
     if(it->addr == addr) {
       b = &(*it);
       break;
@@ -117,6 +127,9 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
 	if(on_path_at_level(stash_at_j->leaf_idx, leaf_idx, level) && !stash_at_j->in_use) {
 	  // std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
 	  cmd.block = *stash_at_j;
+	  cmd.block.nonce += 1;
+	  cmd.block = encrypt_block(cmd.block);
+
 	  stash.erase(stash_at_j, std::next(stash_at_j));
 	  found_block = true;
 	  break;
@@ -124,13 +137,13 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
       }
       if(!found_block) {
 	cmd.block = Block();
-	cmd.block.leaf_idx = 0;;
+	cmd.block.leaf_idx = 0;
+	fill_random_data(cmd.block.data, BLOCK_SIZE);
+	cmd.block = encrypt_block(cmd.block);
       }
       send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
     }
   }
-
-  // std::cout << "Dumping stash: after dump size = " << stash.size() << "\n";
 
 }
 
@@ -162,7 +175,7 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
-      if(b->addr != 0) stash.push_back(*b);
+      if(b->addr != 0) stash.push_back(decrypt_block(*b));
     }
   }
 }
@@ -185,7 +198,7 @@ void ORAMClient::init_tree() {
 
   unsigned long num_blocks = BUCKET_SIZE * num_buckets;
 
-  Block tmp_block; // TODO change this to be encryptoed null block
+  Block tmp_block; 
   tmp_block.addr = 0;
 
   Cmd populate_tree_cmd = {
@@ -203,10 +216,60 @@ void ORAMClient::init_tree() {
   };
 
   for (unsigned long i = 0; i < num_blocks; i++) {
-    send_block.block = tmp_block;
+    fill_random_data(tmp_block.data, BLOCK_SIZE);
+    send_block.block = encrypt_block(tmp_block);
     send(client_socket, (char*)(&send_block), sizeof(Cmd), 0);
   }
 }
+
+Block ORAMClient::encrypt_block(Block b) {
+  return b;
+  // std::string message = "Secret message!";
+  // std::vector<unsigned char> plaintext(message.begin(), message.end());
+  // std::vector<unsigned char> ciphertext;
+  
+  // EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  
+  // if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key->data(), iv->data())) {
+  //   EVP_CIPHER_CTX_free(ctx);
+  //   std::cerr << "EVP_EncryptInit_ex(...) failed.\n";
+  //   std::abort();
+  // }
+  
+  // ciphertext.resize(plaintext.size() + AES_BLOCK_SIZE);
+  // int len = 0, ciphertext_len = 0;
+
+  // if (!EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), plaintext.size())) {
+  //   EVP_CIPHER_CTX_free(ctx);
+  //   std::cerr << "EVP_EncryptUpdate(...) failed.\n";
+  //   std::abort();
+  // }
+  // ciphertext_len = len;
+
+  // if (!EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len)) {
+  //   EVP_CIPHER_CTX_free(ctx);
+  //   std::cerr << "EVP_EncryptFinal_ex(...) failed.\n";
+  //   std::abort();
+  // }
+  // ciphertext_len += len;
+  // ciphertext.resize(ciphertext_len);
+
+  // EVP_CIPHER_CTX_free(ctx); 
+
+  // return b;
+}
+
+Block ORAMClient::decrypt_block(Block b) {
+  return b;
+}
+
+void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
+  std::random_device rd;
+  for (unsigned int i = 0; i < num_bytes; ++i) {
+    buf[i] = static_cast<uint8_t>(rd() & 0xFF);
+  }
+}
+
 /* --------------------------------------------- */
 
 ORAMServer::ORAMServer(uint16_t port) {
