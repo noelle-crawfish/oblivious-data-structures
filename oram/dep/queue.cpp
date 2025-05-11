@@ -16,7 +16,9 @@ void QueueClient::push(char data[BLOCK_SIZE]) {
   char metadata[METADATA_SIZE];
   memcpy(metadata, (char*)(&next_leaf), sizeof(unsigned int));
 
-  stash.push_back(make_oram_block(0, tail++, leaf_idx, data, metadata));
+  Block new_block;
+  make_oram_block(new_block, 0, tail++, leaf_idx, data, metadata);
+  stash.push_back(new_block);
 
   // write blocks from the stash back to the path
   dump_stash(leaf_idx);

@@ -12,7 +12,9 @@ void StackClient::push(char data[BLOCK_SIZE]) {
   char metadata[METADATA_SIZE];
   memcpy(metadata, (char*)(&last_leaf), sizeof(unsigned int));
 
-  stash.push_back(make_oram_block(0, ++ctr, leaf_idx, data, metadata));
+  Block new_block;
+  make_oram_block(new_block, 0, ++ctr, leaf_idx, data, metadata);
+  stash.push_back(new_block);
   Block *b = &stash.back();
 
   last_leaf = b->leaf_idx;

@@ -118,7 +118,11 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 
   // if(b == NULL) stash.push_back(Block(addr, data));
   char null_metadata[METADATA_SIZE];
-  if(b == NULL) stash.push_back(make_oram_block(0, addr, leaf_idx, data, null_metadata));
+  if(b == NULL) {
+    Block new_block;
+    make_oram_block(new_block, 0, addr, leaf_idx, data, null_metadata);
+    stash.push_back(new_block);
+  }
   b = &stash.back();
 
   b->leaf_idx = random_leaf_idx();
@@ -249,6 +253,7 @@ Block ORAMClient::encrypt_block(Block b) {
   std::vector<unsigned char> ciphertext;
 
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_set_padding(ctx, 0);
   
   if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key->data(), iv->data())) {
     EVP_CIPHER_CTX_free(ctx);
@@ -256,7 +261,7 @@ Block ORAMClient::encrypt_block(Block b) {
     std::abort();
   }
   
-  ciphertext.resize(plaintext.size() + AES_BLOCK_SIZE);
+  ciphertext.resize(plaintext.size());
   int len = 0, ciphertext_len = 0;
 
   if (!EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), plaintext.size())) {
@@ -272,6 +277,8 @@ Block ORAMClient::encrypt_block(Block b) {
     std::abort();
   }
   ciphertext_len += len;
+
+  // std::cout << ciphertext_len << " " << sizeof(Block) << "\n";
   ciphertext.resize(ciphertext_len);
 
   EVP_CIPHER_CTX_free(ctx); 
@@ -285,6 +292,8 @@ Block ORAMClient::decrypt_block(Block b) {
   std::vector<unsigned char> plaintext;
 
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_set_padding(ctx, 0);
+
   if(!ctx) {
     std::cerr << "EVP_CIPHER_CTX_new() failed.\n";
     std::abort();

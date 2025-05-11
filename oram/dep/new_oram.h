@@ -27,7 +27,6 @@
 #define N_LEAVES (2 << (L-1) )
 
 // 16 bytes = 128 bits -> std for AES
-#define AES_BLOCK_SIZE 16
 
 enum Opcode {
   BLOCK, // single block in a sequence (use after starting bulk send)

@@ -10,7 +10,7 @@
 #include "set.h"
 #include "map.h"
 
-#define N 100
+#define N 10
 
 void stack_test() {
   char data[BLOCK_SIZE];
@@ -22,18 +22,14 @@ void stack_test() {
     memcpy(data, (char*)&i, sizeof(int));
     client.push(data);
     std::cout << i << " ";
-    //std::cout << client.stash_size() << "\n";
   }
   std::cout << "\n\n";
 
   for(int i = 1; i <= N; ++i) {
     client.pop(data);
     std::cout << *((int*)data) << " ";
-    // std::cout << client.stash_size() << "\n";
   }
   std::cout << "\n";
-
-  // std::cout << client.stash_size() << "\n";
 
   client.exit();
 }
@@ -107,7 +103,6 @@ void map_test() {
 }
 
 int main(int argc, char* argv[]) {
-
   if(argc < 2) {
     std::cout << "Usage: ./client [data structure (stack, queue, map, set)]\n";
     return -1;

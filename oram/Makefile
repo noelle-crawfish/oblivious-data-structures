@@ -1,7 +1,7 @@
 # Compiler and flags
 CXX = g++ -g
 CXXFLAGS = -std=c++23 -Wall -Wextra -g -I./dep -lcrypto
-DEBUGFLAGS = -std=c++23 -Wall -Wextra -g -I./dep
+DEBUGFLAGS = -std=c++23 -Wall -Wextra -g -I./dep -lcrypto
 # Files
 # SRC = main.cpp 
 HDR = $(shell find $(PWD)/dep -name '*.h')

@@ -18,12 +18,13 @@ struct Block {
   char data[BLOCK_SIZE];
   char metadata[METADATA_SIZE];
   bool in_use;
+  // char padding[16];
 };
 
 static_assert(sizeof(Block) % AES_BLOCK_SIZE == 0);
 
-Block make_oram_block(unsigned int nonce, unsigned int addr, unsigned int leaf_idx, char data[BLOCK_SIZE],
-		      char metadata[METADATA_SIZE]);
+void make_oram_block(Block b, unsigned int nonce, unsigned int addr, unsigned int leaf_idx,
+		      char data[BLOCK_SIZE], char metadata[METADATA_SIZE]);
 
 class Bucket {
  public:
