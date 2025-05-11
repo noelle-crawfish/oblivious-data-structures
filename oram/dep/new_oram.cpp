@@ -20,6 +20,30 @@
 
 /* --------------------------------------------- */
 
+Node::Node(int height, int path, Node *parent) {
+  unsigned int leaf_idx = (unsigned int)path << (L-height);
+  this->bucket = new Bucket();
+
+  Block b;
+  b.addr = 0;
+  b.leaf_idx = leaf_idx;
+  
+  for(int i = 0; i < BUCKET_SIZE; ++i) {
+    bucket->blocks.push_back(b);
+  }
+
+  this->l_child = NULL;
+  this->r_child = NULL;
+  this->parent = parent;
+
+  if(height != 0) {
+    this->l_child = new Node(height-1, (path << 1), this);
+    this->r_child = new Node(height-1, (path << 1) | 0x01, this);
+  }
+}
+
+/* --------------------------------------------- */
+
 ORAMClient::ORAMClient(std::string server_ip, int port) {
   // generate AES key
   key = new std::vector<unsigned char>(32); 
@@ -92,7 +116,9 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
     }
   }
 
-  if(b == NULL) stash.push_back(Block(addr, data));
+  // if(b == NULL) stash.push_back(Block(addr, data));
+  char null_metadata[METADATA_SIZE];
+  if(b == NULL) stash.push_back(make_oram_block(0, addr, leaf_idx, data, null_metadata));
   b = &stash.back();
 
   b->leaf_idx = random_leaf_idx();
@@ -181,12 +207,8 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
 }
 
 void ORAMClient::exit() {
-  Block null_block;
-  Cmd cmd = {
-    .opcode = EXIT,
-    .block = null_block,
-    .leaf_idx = 0,
-  };
+  Cmd cmd;
+  cmd.opcode = EXIT;
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
   close(client_socket);
 }
