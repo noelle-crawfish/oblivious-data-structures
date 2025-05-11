@@ -29,7 +29,9 @@ void SetClient<V>::insert(V v) {
 
 template<typename V>
 void SetClient<V>::remove(V v) {
-  remove(v, BlockPtr(root_addr, root_leaf));
+  BlockPtr b_ptr = remove(v, BlockPtr(root_addr, root_leaf));
+  root_addr = b_ptr.addr;
+  root_leaf = b_ptr.leaf_idx;
 }
 
 template<typename V>
@@ -122,7 +124,6 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
 
 template<typename V>
 BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
-  // std::cout << "remove(" << v << ", BlockPtr(" << b_ptr.addr << ", " << b_ptr.leaf_idx << "))\n";
   if(b_ptr.addr == 0) {
     std::cerr << "Could not find value to remove.\n";
     std::abort();
@@ -150,14 +151,12 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
       b_ptr.addr = b_meta.l_child_addr;
       b_ptr.leaf_idx = b_meta.l_child_leaf;
     } else {
-      std::cout << "Not a leaf node\n";
       BlockPtr min_ptr = min_node(BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       Block *min_node = get_block(min_ptr);
 
       b_ptr.addr = min_ptr.addr;
       b_ptr.leaf_idx = min_ptr.leaf_idx;
 
-      std::cout << "Need to remove replaced value from subtree... value is ";
       V v = *(V*)(min_node->data);
       std::cout << v << "\n";
       BlockPtr new_right = remove(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
