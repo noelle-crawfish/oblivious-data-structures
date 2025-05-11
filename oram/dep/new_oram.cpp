@@ -22,11 +22,11 @@
 
 ORAMClient::ORAMClient(std::string server_ip, int port) {
   // generate AES key
-  // key = new std::vector<unsigned char>(32); 
-  // iv = new std::vector<unsigned char>(16); 
+  key = new std::vector<unsigned char>(32); 
+  iv = new std::vector<unsigned char>(16); 
 
-  // RAND_bytes(key.data(), key.size());
-  // RAND_bytes(iv.data(), iv.size());
+  RAND_bytes(key->data(), key->size());
+  RAND_bytes(iv->data(), iv->size());
 
   std::cout << server_ip << "\n";
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -223,44 +223,78 @@ void ORAMClient::init_tree() {
 }
 
 Block ORAMClient::encrypt_block(Block b) {
-  return b;
-  // std::string message = "Secret message!";
-  // std::vector<unsigned char> plaintext(message.begin(), message.end());
-  // std::vector<unsigned char> ciphertext;
+  std::string message = "Secret message!";
+  std::vector<unsigned char> plaintext(message.begin(), message.end());
+  std::vector<unsigned char> ciphertext;
+
+  EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
   
-  // EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key->data(), iv->data())) {
+    EVP_CIPHER_CTX_free(ctx);
+    std::cerr << "EVP_EncryptInit_ex(...) failed.\n";
+    std::abort();
+  }
   
-  // if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key->data(), iv->data())) {
-  //   EVP_CIPHER_CTX_free(ctx);
-  //   std::cerr << "EVP_EncryptInit_ex(...) failed.\n";
-  //   std::abort();
-  // }
-  
-  // ciphertext.resize(plaintext.size() + AES_BLOCK_SIZE);
-  // int len = 0, ciphertext_len = 0;
+  ciphertext.resize(plaintext.size() + AES_BLOCK_SIZE);
+  int len = 0, ciphertext_len = 0;
 
-  // if (!EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), plaintext.size())) {
-  //   EVP_CIPHER_CTX_free(ctx);
-  //   std::cerr << "EVP_EncryptUpdate(...) failed.\n";
-  //   std::abort();
-  // }
-  // ciphertext_len = len;
+  if (!EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), plaintext.size())) {
+    EVP_CIPHER_CTX_free(ctx);
+    std::cerr << "EVP_EncryptUpdate(...) failed.\n";
+    std::abort();
+  }
+  ciphertext_len = len;
 
-  // if (!EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len)) {
-  //   EVP_CIPHER_CTX_free(ctx);
-  //   std::cerr << "EVP_EncryptFinal_ex(...) failed.\n";
-  //   std::abort();
-  // }
-  // ciphertext_len += len;
-  // ciphertext.resize(ciphertext_len);
+  if (!EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len)) {
+    EVP_CIPHER_CTX_free(ctx);
+    std::cerr << "EVP_EncryptFinal_ex(...) failed.\n";
+    std::abort();
+  }
+  ciphertext_len += len;
+  ciphertext.resize(ciphertext_len);
 
-  // EVP_CIPHER_CTX_free(ctx); 
+  EVP_CIPHER_CTX_free(ctx); 
 
-  // return b;
+  return b; // TODO this whole function is a nop rn, make b encrypted instead of random plaintext...
 }
 
 Block ORAMClient::decrypt_block(Block b) {
-  return b;
+  std::vector<unsigned char> ciphertext(AES_BLOCK_SIZE*3);
+  std::vector<unsigned char> plaintext(AES_BLOCK_SIZE*3);
+
+  EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+  if(!ctx) {
+    std::cerr << "EVP_CIPHER_CTX_new() failed.\n";
+    std::abort();
+  }
+
+  if(!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key->data(), iv->data())) {
+    EVP_CIPHER_CTX_free(ctx);
+    std::cerr << "EVP_DecryptInit_ex(...) failed.\n";
+    std::abort();
+  }
+
+  plaintext.resize(ciphertext.size());
+  int len = 0, plaintext_len = 0;
+  
+  if (!EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size())) {
+    EVP_CIPHER_CTX_free(ctx);
+    std::cerr << "EVP_DecryptUpdate(...) failed.\n";
+    std::abort();
+  }
+  plaintext_len = len;
+  
+  if (!EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len)) {
+    EVP_CIPHER_CTX_free(ctx);
+    std::cerr << "EVP_DecryptFinal_ex(...) failed.\n";
+    std::abort();
+  }
+  plaintext_len += len;
+  plaintext.resize(plaintext_len);
+  
+  EVP_CIPHER_CTX_free(ctx);
+  
+  return b; // TODO this is a nop, decrypt b
 }
 
 void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
