@@ -169,6 +169,18 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
   }
 }
 
+void ORAMClient::exit() {
+  Block null_block;
+  Cmd cmd = {
+    .opcode = EXIT,
+    .block = null_block,
+    .leaf_idx = 0,
+  };
+  send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  close(client_socket);
+}
+
+
 void ORAMClient::initTree() {
   // send populate tree followed by expected number of blocks(Double check this noelle, i know ur gonna read this comment/my code to critique it. also get fucked i know your screen cant fit this comment becuase its on one line. <3 :kiss: ily bby. )
 
@@ -178,14 +190,12 @@ void ORAMClient::initTree() {
   }
   unsigned long expected = BUCKET_SIZE * numBuckets;
 
-  char buf[sizeof(Cmd)];
-
   Block null_block;
 
   Cmd cmd = {
     .opcode = POPULATE_TREE,
     .block = null_block,
-    .leaf_idx = -1, // this is a dont care
+    .leaf_idx = 0, // this is a dont care
   };
 
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
@@ -196,14 +206,13 @@ void ORAMClient::initTree() {
     Cmd cmd = {
       .opcode = BLOCK,
       .block = null_block,
-      .leaf_idx = -1, // this is a dont care
+      .leaf_idx = 0, // this is a dont care
     };
     send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
 
   }
 
 }
-
 /* --------------------------------------------- */
 
 ORAMServer::ORAMServer(uint16_t port) {
@@ -333,12 +342,12 @@ Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
 
 void ORAMServer::populate_tree() {
   // clear the tree 
-  unsigned long numBuckets = 0; 
-  for(unsigned long i = 1; i < L; i++) {
+  int numBuckets = 0; 
+  for(int i = 1; i < L; i++) {
     numBuckets += (2 << (i-1)); 
   }
   
-  unsigned long expected = BUCKET_SIZE * numBuckets;
+  int expected = BUCKET_SIZE * numBuckets;
   clear_tree(root);
   std::queue<Node*> bfsQueue;
   bfsQueue.push(root); 
@@ -350,11 +359,11 @@ void ORAMServer::populate_tree() {
     char buf[sizeof(Cmd)];
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
     if(bytes > 0) {
-      Cmd cmd = *(Cmd*)buf;
+      Cmd *cmd = (Cmd*)buf;
 
-      switch(cmd.opcode) {
+      switch(cmd->opcode) {
         case BLOCK: 
-          curr->bucket->blocks.push_back(cmd.block); 
+          curr->bucket->blocks.push_back(cmd->block); 
           if (curr->bucket->blocks.size() == BUCKET_SIZE) {
             if (curr->r_child != NULL) {
               bfsQueue.push(curr->r_child); 
