@@ -150,14 +150,17 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
       b_ptr.addr = b_meta.l_child_addr;
       b_ptr.leaf_idx = b_meta.l_child_leaf;
     } else {
-      // std::cout << "Not a leaf node\n";
+      std::cout << "Not a leaf node\n";
       BlockPtr min_ptr = min_node(BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       Block *min_node = get_block(min_ptr);
 
       b_ptr.addr = min_ptr.addr;
       b_ptr.leaf_idx = min_ptr.leaf_idx;
 
-      BlockPtr new_right = remove(*(V*)(min_node->data), BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
+      std::cout << "Need to remove replaced value from subtree... value is ";
+      V v = *(V*)(min_node->data);
+      std::cout << v << "\n";
+      BlockPtr new_right = remove(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       b_meta.r_child_addr = new_right.addr;
       b_meta.r_child_leaf = new_right.leaf_idx;
 
