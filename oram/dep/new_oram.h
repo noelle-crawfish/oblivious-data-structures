@@ -12,13 +12,21 @@
 #include <cstdlib>
 #include <string>
 
+#include <map>
+#include <vector>
+
 #include <iostream>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "oram.h"
+#include "bucket.h"
+
+#define L 4
+#define N_LEAVES (2 << (L-1) )
+
+// 16 bytes = 128 bits -> std for AES
 
 enum Opcode {
   BLOCK, // single block in a sequence (use after starting bulk send)
@@ -34,6 +42,16 @@ struct Cmd {
   unsigned int leaf_idx;
 };
 
+class Node {
+ public:
+  Node(int height, int path, Node *parent);
+  Node(int height) : Node(height, 0, NULL) {};
+  Node *l_child;
+  Node *r_child;
+  Node *parent;
+  Bucket *bucket;
+};
+
 class ORAMClient {
  public:
   ORAMClient(std::string server_ip, int port);
@@ -46,10 +64,16 @@ class ORAMClient {
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
   unsigned int random_leaf_idx();
   void get_blocks(unsigned int leaf_idx); // modifies the stash
+  Block encrypt_block(Block b);
+  Block decrypt_block(Block b);
+  void fill_random_data(char *buf, unsigned int num_bytes);
+  void flush_stash();
 
- std::map<unsigned int, unsigned int> mappings;
- std::list<Block> stash;
- int client_socket;
+  std::vector<unsigned char> *key;
+  std::vector<unsigned char> *iv;
+  std::map<unsigned int, unsigned int> mappings;
+  std::list<Block> stash;
+  int client_socket;
 };
 
 class ORAMServer {

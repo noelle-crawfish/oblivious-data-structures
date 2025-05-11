@@ -13,6 +13,8 @@ void MapClient<K, V>::insert(K k, V v) {
   std::pair<K, V> data = std::pair(k, v);
 
   SetClient<std::pair<K, V>>::insert(data);
+
+  for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
 }
 
 template<typename K, typename V>
@@ -21,6 +23,8 @@ void MapClient<K, V>::remove(K k) {
   std::pair<K, V> data = std::pair(k, null_v);
 
   SetClient<std::pair<K, V>>::remove(data);
+
+  for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
 }
 
 template<typename K, typename V>
@@ -28,7 +32,9 @@ bool MapClient<K, V>::contains(K k) {
   V null_v;
   std::pair<K, V> data = std::pair(k, null_v);
 
-  return SetClient<std::pair<K, V>>::contains(data);
+  bool contains = SetClient<std::pair<K, V>>::contains(data);
+  for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
+  return contains;
 }
 
 template<typename K, typename V>
@@ -44,6 +50,7 @@ V MapClient<K, V>::at(K k) {
 
   Block *b = SetClient<std::pair<K, V>>::get_block(b_ptr);
   V v = ((std::pair<K, V>*)(b->data))->second;
+  for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
   return v;
 }
 

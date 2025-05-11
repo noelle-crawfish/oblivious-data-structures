@@ -1,7 +1,6 @@
 #ifndef SET_H
 #define SET_H
 
-#include "oram.h"
 #include "new_oram.h"
 
 struct AVLMetadata {
