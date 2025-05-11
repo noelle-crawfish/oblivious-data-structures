@@ -25,6 +25,7 @@ enum Opcode {
   GET_BLOCKS,
   DUMP_STASH, 
   EXIT,
+  POPULATE_TREE,
 };
 
 struct Cmd {
@@ -39,6 +40,7 @@ class ORAMClient {
   int read(char *buf, unsigned int addr);
   void write(unsigned int addr, char data[BLOCK_SIZE]);
   void exit();
+  void initTree();
  protected:
   void dump_stash(unsigned int leaf_idx); // interface with server to dump stash
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
@@ -62,6 +64,8 @@ class ORAMServer {
   void dump_stash(unsigned int leaf_idx); // receive client dump stash request and refill buckets
   void get_blocks(unsigned int leaf_idx);
   Node *get_leaf(unsigned int leaf_idx);
+  void populate_tree();
+  void clear_tree(Node *root); 
 };
 
 #endif
