@@ -26,6 +26,8 @@
 #define L 4
 #define N_LEAVES (2 << (L-1) )
 
+#define STASH_THRESHOLD 5
+
 // 16 bytes = 128 bits -> std for AES
 
 enum Opcode {

@@ -191,6 +191,8 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
+  flush_stash();
+
   char buf[sizeof(Cmd)];
 
   Block null_block;
@@ -337,9 +339,18 @@ void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
 }
 
 void ORAMClient::flush_stash() {
-  unsigned int leaf_idx = random_leaf_idx();
-  get_blocks(leaf_idx);
-  dump_stash(leaf_idx);
+  // std::cout << "flush_stash(); -> " << stash.size() << " : " << STASH_THRESHOLD << "\n";
+  if(stash.size() > STASH_THRESHOLD) {
+    unsigned int leaf_idx = (*stash.begin()).leaf_idx;
+    get_blocks(leaf_idx);
+    dump_stash(leaf_idx);
+  }
+  // std::cout << "DONE!\n";
+
+  // if(stash.size() > STASH_THRESHOLD) {
+  //   std::cerr << "Could not flush stash\n";
+  //   std::abort();
+  // }
 }
 
 /* --------------------------------------------- */

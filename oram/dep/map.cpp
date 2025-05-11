@@ -13,7 +13,6 @@ void MapClient<K, V>::insert(K k, V v) {
   std::pair<K, V> data = std::pair(k, v);
 
   SetClient<std::pair<K, V>>::insert(data);
-
   for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
 }
 
@@ -23,7 +22,6 @@ void MapClient<K, V>::remove(K k) {
   std::pair<K, V> data = std::pair(k, null_v);
 
   SetClient<std::pair<K, V>>::remove(data);
-
   for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
 }
 
