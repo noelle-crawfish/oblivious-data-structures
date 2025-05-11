@@ -25,7 +25,6 @@ void SetClient<V>::insert(V v) {
   root_leaf = b_ptr.leaf_idx;
 
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
-  flush_stash();
 }
 
 template<typename V>
@@ -35,7 +34,6 @@ void SetClient<V>::remove(V v) {
   root_leaf = b_ptr.leaf_idx;
 
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
-  flush_stash();
 }
 
 template<typename V>
@@ -43,7 +41,6 @@ bool SetClient<V>::contains(V v) {
   BlockPtr b_ptr = find(v, BlockPtr(root_addr, root_leaf));
 
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
-  flush_stash();
   return (b_ptr.addr != 0);
 }
 
@@ -347,6 +344,7 @@ Block* SetClient<V>::get_block(unsigned int addr, unsigned int leaf_idx) {
   for(auto it = stash.begin(); it != stash.end(); ++it) {
     if(it->addr == addr) {
       it->in_use = true;
+      flush_stash();
       return &(*it);
     }
   }
