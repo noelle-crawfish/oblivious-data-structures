@@ -12,13 +12,19 @@
 #include <cstdlib>
 #include <string>
 
+#include <map>
+#include <vector>
+
 #include <iostream>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "oram.h"
+#include "bucket.h"
+
+#define L 4
+#define N_LEAVES (2 << (L-1) )
 
 // 16 bytes = 128 bits -> std for AES
 #define AES_BLOCK_SIZE 16
@@ -35,6 +41,16 @@ struct Cmd {
   Opcode opcode;
   Block block;
   unsigned int leaf_idx;
+};
+
+class Node {
+ public:
+  Node(int height, int path, Node *parent);
+  Node(int height) : Node(height, 0, NULL) {};
+  Node *l_child;
+  Node *r_child;
+  Node *parent;
+  Bucket *bucket;
 };
 
 class ORAMClient {

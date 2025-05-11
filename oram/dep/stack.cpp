@@ -1,5 +1,3 @@
-#include <cstring>
-
 #include "stack.h"
 
 ObliviousStack::ObliviousStack() {
@@ -33,11 +31,12 @@ void StackClient::push(char data[BLOCK_SIZE]) {
   unsigned int leaf_idx = random_leaf_idx();
   get_blocks(leaf_idx);
 
-  stash.push_back(Block(++ctr, data));
+  char metadata[METADATA_SIZE];
+  memcpy(metadata, (char*)(&last_leaf), sizeof(unsigned int));
+
+  stash.push_back(make_block(0, ++ctr, leaf_idx, data, metadata));
   Block *b = &stash.back();
 
-  b->leaf_idx = leaf_idx;
-  memcpy(b->metadata, (char*)(&last_leaf), sizeof(unsigned int));
   last_leaf = b->leaf_idx;
 
   // write blocks from the stash back to the path
