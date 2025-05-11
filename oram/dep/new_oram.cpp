@@ -223,8 +223,7 @@ void ORAMClient::init_tree() {
 }
 
 Block ORAMClient::encrypt_block(Block b) {
-  std::string message = "Secret message!";
-  std::vector<unsigned char> plaintext(message.begin(), message.end());
+  std::vector<unsigned char> plaintext((char*)&b, (char*)&b + sizeof(Block));
   std::vector<unsigned char> ciphertext;
 
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -255,12 +254,13 @@ Block ORAMClient::encrypt_block(Block b) {
 
   EVP_CIPHER_CTX_free(ctx); 
 
-  return b; // TODO this whole function is a nop rn, make b encrypted instead of random plaintext...
+  memcpy(&b, &(*ciphertext.begin()), sizeof(Block));
+  return b; 
 }
 
 Block ORAMClient::decrypt_block(Block b) {
-  std::vector<unsigned char> ciphertext(AES_BLOCK_SIZE*3);
-  std::vector<unsigned char> plaintext(AES_BLOCK_SIZE*3);
+  std::vector<unsigned char> ciphertext((char*)&b, (char*)&b + sizeof(Block));
+  std::vector<unsigned char> plaintext;
 
   EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
   if(!ctx) {
@@ -293,8 +293,9 @@ Block ORAMClient::decrypt_block(Block b) {
   plaintext.resize(plaintext_len);
   
   EVP_CIPHER_CTX_free(ctx);
-  
-  return b; // TODO this is a nop, decrypt b
+
+  memcpy(&b, &(*plaintext.begin()), sizeof(Block));
+  return b; 
 }
 
 void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
@@ -302,6 +303,12 @@ void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
   for (unsigned int i = 0; i < num_bytes; ++i) {
     buf[i] = static_cast<uint8_t>(rd() & 0xFF);
   }
+}
+
+void ORAMClient::flush_stash() {
+  unsigned int leaf_idx = random_leaf_idx();
+  get_blocks(leaf_idx);
+  dump_stash(leaf_idx);
 }
 
 /* --------------------------------------------- */

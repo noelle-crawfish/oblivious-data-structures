@@ -52,6 +52,7 @@ class ORAMClient {
   Block encrypt_block(Block b);
   Block decrypt_block(Block b);
   void fill_random_data(char *buf, unsigned int num_bytes);
+  void flush_stash();
 
   std::vector<unsigned char> *key;
   std::vector<unsigned char> *iv;
