@@ -35,6 +35,8 @@ ORAMClient::ORAMClient(std::string server_ip, int port) {
     temp = connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
   }
   mappings = std::map<unsigned int, unsigned int>();
+
+  init_tree();
 }
 
 int ORAMClient::read(char *buf, unsigned int addr) {
@@ -146,7 +148,6 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
-  // std::cout << "get_blocks(" << leaf_idx << ")\n";
   char buf[sizeof(Cmd)];
 
   Block null_block;
@@ -157,15 +158,12 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
   };
   trace();
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  // std::cout << "Getting blocks...\n";
   for(int level = 0; level < L; ++level) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
       if(b->addr != 0) stash.push_back(*b);
-      // std::cout << "(" << b->addr << ", " << b->leaf_idx << ") ";
     }
-    // std::cout << "\n";
   }
 }
 
@@ -181,37 +179,33 @@ void ORAMClient::exit() {
 }
 
 
-void ORAMClient::initTree() {
-  // send populate tree followed by expected number of blocks(Double check this noelle, i know ur gonna read this comment/my code to critique it. also get fucked i know your screen cant fit this comment becuase its on one line. <3 :kiss: ily bby. )
+void ORAMClient::init_tree() {
+  unsigned long num_buckets = 0; 
+  for(unsigned long i = 0; i < L; ++i) num_buckets += (1 << i); 
 
-  unsigned long numBuckets = 0; 
-  for(unsigned long i = 1; i < L; i++) {
-    numBuckets += (2 << (i-1)); 
-  }
-  unsigned long expected = BUCKET_SIZE * numBuckets;
+  unsigned long num_blocks = BUCKET_SIZE * num_buckets;
 
-  Block null_block;
+  Block tmp_block; // TODO change this to be encryptoed null block
+  tmp_block.addr = 0;
 
-  Cmd cmd = {
+  Cmd populate_tree_cmd = {
     .opcode = POPULATE_TREE,
-    .block = null_block,
-    .leaf_idx = 0, // this is a dont care
+    .block = tmp_block,
+    .leaf_idx = 0, 
   };
 
-  send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
+  send(client_socket, (char*)(&populate_tree_cmd), sizeof(Cmd), 0);
 
-  for (unsigned long i = 0; i < expected; i++) {
-    Block encryptedBlock;
+  Cmd send_block = {
+    .opcode = BLOCK,
+    .block = tmp_block,
+    .leaf_idx = 0,
+  };
 
-    Cmd cmd = {
-      .opcode = BLOCK,
-      .block = null_block,
-      .leaf_idx = 0, // this is a dont care
-    };
-    send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-
+  for (unsigned long i = 0; i < num_blocks; i++) {
+    send_block.block = tmp_block;
+    send(client_socket, (char*)(&send_block), sizeof(Cmd), 0);
   }
-
 }
 /* --------------------------------------------- */
 
@@ -257,7 +251,7 @@ void ORAMServer::run() {
 	break;
       case DUMP_STASH:
 	dump_stash(cmd->leaf_idx);
-  break;
+	break;
       case POPULATE_TREE: 
       populate_tree();
 	break;
@@ -341,46 +335,28 @@ Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
 
 
 void ORAMServer::populate_tree() {
-  // clear the tree 
-  int numBuckets = 0; 
-  for(int i = 1; i < L; i++) {
-    numBuckets += (2 << (i-1)); 
-  }
-  
-  int expected = BUCKET_SIZE * numBuckets;
   clear_tree(root);
-  std::queue<Node*> bfsQueue;
-  bfsQueue.push(root); 
-  Node* curr = root; 
-  while (expected > 0) {
-    if (expected > 0 && curr == NULL) {
-      std::cout << "shits fucked. traversing didnt allow all blocks to be emptied?";
-    }
-    char buf[sizeof(Cmd)];
-    int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
-    if(bytes > 0) {
-      Cmd *cmd = (Cmd*)buf;
+  populate_tree(root);
+}
 
-      switch(cmd->opcode) {
-        case BLOCK: 
-          curr->bucket->blocks.push_back(cmd->block); 
-          if (curr->bucket->blocks.size() == BUCKET_SIZE) {
-            if (curr->r_child != NULL) {
-              bfsQueue.push(curr->r_child); 
-            }
-            if (curr->l_child != NULL) {
-              bfsQueue.push(curr->l_child); 
-            }
-            curr = bfsQueue.front(); 
-          }
-        break; 
-        default:
-        std::cout << "Statup sequence isnt working, exitting";  
-        exit(0); 
-      }
+void ORAMServer::populate_tree(Node *root) {
+  Cmd cmd;
+
+  // read blocks into current nodes bucket
+  for(int i = 0; i < BUCKET_SIZE; ++i) {
+    int bytes = recv(client_socket, (char*)&cmd, sizeof(Cmd), 0);
+    if(bytes <= 0) {
+      std::cerr << "Read <= 0 bytes from client during initialization.\n";
+      std::abort();
     }
-    expected--; 
+    assert(cmd.opcode == BLOCK);
+    root->bucket->blocks.push_back(cmd.block);
   }
+
+  // read blocks into left subtree
+  if(root->l_child != NULL) populate_tree(root->l_child);
+  // read blocks into right subtree
+  if(root->r_child != NULL) populate_tree(root->r_child);
 }
 
 void ORAMServer::clear_tree(Node *root){

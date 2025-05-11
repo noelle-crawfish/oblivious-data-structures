@@ -40,7 +40,7 @@ class ORAMClient {
   int read(char *buf, unsigned int addr);
   void write(unsigned int addr, char data[BLOCK_SIZE]);
   void exit();
-  void initTree();
+  void init_tree();
  protected:
   void dump_stash(unsigned int leaf_idx); // interface with server to dump stash
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
@@ -65,6 +65,7 @@ class ORAMServer {
   void get_blocks(unsigned int leaf_idx);
   Node *get_leaf(unsigned int leaf_idx);
   void populate_tree();
+  void populate_tree(Node *root);
   void clear_tree(Node *root); 
 };
 
