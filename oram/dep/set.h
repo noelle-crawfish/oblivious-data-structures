@@ -3,7 +3,19 @@
 
 #include "oram.h"
 #include "new_oram.h"
-#include "map.h"
+
+struct AVLMetadata {
+  unsigned int l_child_leaf;
+  unsigned int l_child_addr;
+  unsigned int r_child_leaf;
+  unsigned int r_child_addr;
+  int height;
+};
+
+struct BlockPtr {
+  unsigned int addr;
+  unsigned int leaf_idx;
+};
 
 template <typename V>
 class SetClient : public ORAMClient {
@@ -24,12 +36,13 @@ class SetClient : public ORAMClient {
 
   int get_balance(BlockPtr b_ptr);
   BlockPtr min_node(BlockPtr b_ptr);
+  virtual int compare_value(V v1, V v2);
 
   Block* get_block(BlockPtr b_ptr);
   Block* get_block(unsigned int addr, unsigned int leaf_idx);
 
-  MapMetadata parse_metadata(char *buf);
-  void serialize_metadata(char *buf, MapMetadata m);
+  AVLMetadata parse_metadata(char *buf);
+  void serialize_metadata(char *buf, AVLMetadata m);
 
   void prefix_print(BlockPtr b_ptr);
 

@@ -6,6 +6,7 @@
 #include "set.h"
 
 template class SetClient<int>;
+// template class SetClient<std::pair<int, int>>;
 
 template<typename V>
 SetClient<V>::SetClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
@@ -51,7 +52,7 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
     new_block.leaf_idx = random_leaf_idx();
     new_block.in_use = true;
 
-    MapMetadata metadata = {
+    AVLMetadata metadata = {
 	.l_child_leaf = 0,
 	.l_child_addr = 0,
 	.r_child_leaf = 0,
@@ -68,12 +69,12 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
   Block *b = get_block(b_ptr);
   V b_v = *(V*)(b->data);
 
-  MapMetadata b_meta = parse_metadata(b->metadata);
-  if(v < b_v) {
+  AVLMetadata b_meta = parse_metadata(b->metadata);
+  if(compare_value(v, b_v) < 0) {
     BlockPtr new_left = insert(v, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
-  } else if(v > b_v) {
+  } else if(compare_value(v, b_v) > 0) {
     BlockPtr new_right = insert(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
     b_meta.r_child_addr = new_right.addr;
     b_meta.r_child_leaf = new_right.leaf_idx;
@@ -94,17 +95,17 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
 
   int balance = b_left_height - b_right_height;
 
-  if(balance > 1 && v < b_v) {
+  if(balance > 1 && compare_value(v, b_v) < 0) {
     return right_rotate(b_ptr);
-  } else if(balance < -1 && v > b_v) {
+  } else if(balance < -1 && compare_value(v, b_v) > 0) {
     return left_rotate(b_ptr);
-  } else if(balance > 1 && v > b_v) {
+  } else if(balance > 1 && compare_value(v, b_v) > 0) {
     BlockPtr new_left = left_rotate(BlockPtr(b_left->addr, b_left->leaf_idx));
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
     serialize_metadata(b->metadata, b_meta);
     return right_rotate(b_ptr);
-  } else if(balance < -1 && v < b_v) {
+  } else if(balance < -1 && compare_value(v, b_v) < 0) {
     BlockPtr new_right = right_rotate(BlockPtr(b_right->addr, b_right->leaf_idx));
     b_meta.r_child_addr = new_right.addr;
     b_meta.r_child_leaf = new_right.leaf_idx;
@@ -121,20 +122,22 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
 
 template<typename V>
 BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
+  // std::cout << "remove(" << v << ", BlockPtr(" << b_ptr.addr << ", " << b_ptr.leaf_idx << "))\n";
   if(b_ptr.addr == 0) {
     std::cerr << "Could not find value to remove.\n";
     std::abort();
   }
 
   Block *b = get_block(b_ptr);
-  MapMetadata b_meta = parse_metadata(b->metadata);
+  AVLMetadata b_meta = parse_metadata(b->metadata);
 
   V b_v = *(V*)(b->data);
-  if(v < b_v) {
+  if(compare_value(v, b_v) < 0) {
+    // std::cout << "left_addr: " << b_meta.l_child_addr << "\n";
     BlockPtr new_left = remove(v, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
-  } else if(v > b_v) {
+  } else if(compare_value(v, b_v) > 0) {
     BlockPtr new_right = remove(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
     b_meta.r_child_addr = new_right.addr;
     b_meta.r_child_leaf = new_right.leaf_idx;
@@ -191,7 +194,7 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
     return left_rotate(b_ptr);
   }
 
-  return BlockPtr(0, 0);
+  return b_ptr;
 }
 
 template<typename V>
@@ -201,22 +204,22 @@ BlockPtr SetClient<V>::find(V v, BlockPtr b_ptr) {
   }
 
   Block *b = get_block(b_ptr);
-  MapMetadata b_meta = parse_metadata(b->metadata);
+  AVLMetadata b_meta = parse_metadata(b->metadata);
 
   V b_v = *(V*)(b->data);
 
-  if(v < b_v) return find(v, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
-  else if(v > b_v) return find(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
+  if(compare_value(v, b_v) < 0) return find(v, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
+  else if(compare_value(v, b_v) > 0) return find(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
   else return b_ptr; // found it!
 }
 
 template<typename V>
 BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
   Block *b = get_block(b_ptr);
-  MapMetadata b_meta = parse_metadata(b->metadata);
+  AVLMetadata b_meta = parse_metadata(b->metadata);
 
   Block *new_root = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
-  MapMetadata new_root_meta = parse_metadata(new_root->metadata);
+  AVLMetadata new_root_meta = parse_metadata(new_root->metadata);
 
   b_meta.l_child_addr = new_root_meta.r_child_addr; // replace new root w/ it's right child in old root
   b_meta.l_child_leaf = new_root_meta.l_child_addr;
@@ -232,7 +235,7 @@ BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
-  MapMetadata null_metadata = {
+  AVLMetadata null_metadata = {
     .l_child_leaf = 0,
     .l_child_addr = 0,
     .r_child_leaf = 0,
@@ -240,7 +243,7 @@ BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
     .height = 0,
   };
   
-  MapMetadata new_root_left_meta =
+  AVLMetadata new_root_left_meta =
     (b_right == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.l_child_addr,
 							     new_root_meta.l_child_leaf)->metadata);
   new_root_meta.height = 1 + std::max(new_root_left_meta.height, b_meta.height);
@@ -254,10 +257,10 @@ BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
 template<typename V>
 BlockPtr SetClient<V>::left_rotate(BlockPtr b_ptr) {
   Block *b = get_block(b_ptr);
-  MapMetadata b_meta = parse_metadata(b->metadata);
+  AVLMetadata b_meta = parse_metadata(b->metadata);
 
   Block *new_root = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
-  MapMetadata new_root_meta = parse_metadata(new_root->metadata);
+  AVLMetadata new_root_meta = parse_metadata(new_root->metadata);
 
   b_meta.r_child_addr = new_root_meta.l_child_addr; // replace new root w/ it's left child in old root
   b_meta.r_child_leaf = new_root_meta.l_child_leaf;
@@ -273,7 +276,7 @@ BlockPtr SetClient<V>::left_rotate(BlockPtr b_ptr) {
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
-  MapMetadata null_metadata = {
+  AVLMetadata null_metadata = {
     .l_child_leaf = 0,
     .l_child_addr = 0,
     .r_child_leaf = 0,
@@ -281,7 +284,7 @@ BlockPtr SetClient<V>::left_rotate(BlockPtr b_ptr) {
     .height = 0,
   };
   
-  MapMetadata new_root_right_meta =
+  AVLMetadata new_root_right_meta =
     (b_right == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.r_child_addr,
 							     new_root_meta.r_child_leaf)->metadata);
   new_root_meta.height = 1 + std::max(b_meta.height, new_root_right_meta.height);
@@ -295,7 +298,7 @@ BlockPtr SetClient<V>::left_rotate(BlockPtr b_ptr) {
 template<typename V>
 int SetClient<V>::get_balance(BlockPtr b_ptr) {
   Block *b = get_block(b_ptr);
-  MapMetadata b_meta = parse_metadata(b->metadata);
+  AVLMetadata b_meta = parse_metadata(b->metadata);
 
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
@@ -310,7 +313,7 @@ int SetClient<V>::get_balance(BlockPtr b_ptr) {
 template<typename V>
 BlockPtr SetClient<V>::min_node(BlockPtr b_ptr) {
   Block *b = get_block(b_ptr);
-  MapMetadata b_meta = parse_metadata(b->metadata);
+  AVLMetadata b_meta = parse_metadata(b->metadata);
 
   while(b_meta.r_child_addr != 0) {
     b = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
@@ -358,29 +361,16 @@ Block* SetClient<V>::get_block(unsigned int addr, unsigned int leaf_idx) {
 }
 
 template<typename V>
-MapMetadata SetClient<V>::parse_metadata(char *buf) {
-  MapMetadata m;
-  memcpy((char*)&m, buf, sizeof(MapMetadata));
+AVLMetadata SetClient<V>::parse_metadata(char *buf) {
+  AVLMetadata m;
+  memcpy((char*)&m, buf, sizeof(AVLMetadata));
   return m;
 }
 
 template<typename V>
-void SetClient<V>::serialize_metadata(char *buf, MapMetadata m) {
-  memcpy(buf, (char*)&m, sizeof(MapMetadata));
+void SetClient<V>::serialize_metadata(char *buf, AVLMetadata m) {
+  memcpy(buf, (char*)&m, sizeof(AVLMetadata));
 }
-
-// template<typename K, typename V>
-// int MapClient<K, V>::get_balance(BlockPtr b_ptr) {
-//   MapMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
-//   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
-//   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
-
-//   int b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
-//   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
-
-//   int balance = b_left_height - b_right_height;
-//   return balance;
-// }
 
 template<typename V>
 void SetClient<V>::prefix_print() {
@@ -395,11 +385,20 @@ void SetClient<V>::prefix_print(BlockPtr b_ptr) {
     return;
   }
 
-  Block *b = get_block(b_ptr);
-  std::cout << *(V*)(b->data) << " ";
+  // Block *b = get_block(b_ptr);
+  // std::cout << *(V*)(b->data) << " ";
+  std::cout << "X";
 
-  MapMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
+  AVLMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
   prefix_print(BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf)); // left
   prefix_print(BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf)); // right
 }
+
+template<typename V>
+int SetClient<V>::compare_value(V v1, V v2) {
+  if(v1 < v2) return -1;
+  else if(v1 > v2) return 1;
+  else return 0;
+}
+
 
