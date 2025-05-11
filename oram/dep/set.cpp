@@ -6,7 +6,7 @@
 #include "set.h"
 
 template class SetClient<int>;
-// template class SetClient<std::pair<int, int>>;
+template class SetClient<std::pair<int, int>>;
 
 template<typename V>
 SetClient<V>::SetClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
@@ -150,6 +150,7 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
       b_ptr.addr = b_meta.l_child_addr;
       b_ptr.leaf_idx = b_meta.l_child_leaf;
     } else {
+      // std::cout << "Not a leaf node\n";
       BlockPtr min_ptr = min_node(BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       Block *min_node = get_block(min_ptr);
 
@@ -159,6 +160,8 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
       BlockPtr new_right = remove(*(V*)(min_node->data), BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       b_meta.r_child_addr = new_right.addr;
       b_meta.r_child_leaf = new_right.leaf_idx;
+
+      b = min_node;
     }
   }
   serialize_metadata(b->metadata, b_meta);

@@ -26,7 +26,7 @@ class SetClient : public ORAMClient {
   bool contains(V v);
   int size(); 
   void prefix_print();
- private:
+ protected:
   BlockPtr insert(V v, BlockPtr b_ptr);
   BlockPtr remove(V v, BlockPtr b_ptr);
   BlockPtr find(V v, BlockPtr b_ptr);
@@ -51,4 +51,13 @@ class SetClient : public ORAMClient {
   int entries;
 };
 
+
+template<typename T1, typename T2>
+std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& p) {
+    os << "(" << p.first << ", " << p.second << ")";
+    return os;
+}
+
+
 #endif // SET_H
+

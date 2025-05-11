@@ -1,6 +1,6 @@
 #include "map.h"
 
-// template class MapClient<int, int>;
+template class MapClient<int, int>;
 
 template<typename K, typename V>
 MapClient<K, V>::MapClient(std::string server_addr, int port) :
@@ -29,6 +29,22 @@ bool MapClient<K, V>::contains(K k) {
   std::pair<K, V> data = std::pair(k, null_v);
 
   return SetClient<std::pair<K, V>>::contains(data);
+}
+
+template<typename K, typename V>
+V MapClient<K, V>::at(K k) {
+  V null_v;
+  std::pair<K, V> data = std::pair(k, null_v);
+  BlockPtr b_ptr = SetClient<std::pair<K, V>>::find(data, BlockPtr(this->root_addr, this->root_leaf));
+
+  if(b_ptr.addr == 0) {
+    std::cerr << "find() could not find key\n";
+    std::abort();
+  }
+
+  Block *b = SetClient<std::pair<K, V>>::get_block(b_ptr);
+  V v = ((std::pair<K, V>*)(b->data))->second;
+  return v;
 }
 
 template<typename K, typename V>
