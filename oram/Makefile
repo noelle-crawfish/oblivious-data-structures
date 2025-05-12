@@ -10,7 +10,7 @@ OBJ = $(SRC:.cpp=.o)
 TARGET = oram
 
 # Default rule
-all: client server 
+all: client server benchmarks
 
 debugclient: $(OBJ)
 	$(CXX) $(DEBUGFLAGS) client.cpp -o client $^ 
@@ -26,12 +26,15 @@ client: $(OBJ) client.o
 server: $(OBJ) server.o
 	$(CXX) $(CXXFLAGS) -o server $^
 
+benchmarks: $(OBJ) benchmarks.o
+	$(CXX) $(CXXFLAGS) -o benchmarks $^
+
 # Compiling
 %.o: %.cpp 
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean rule
 clean:
-	rm -f $(OBJ) $(TARGET) client server
+	rm -f $(OBJ) $(TARGET) client.o server.o benchmarks.o client server benchmarks
 
 .PHONY: all clean

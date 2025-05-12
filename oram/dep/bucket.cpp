@@ -2,8 +2,9 @@
 
 #include <iostream>
 
-Bucket::Bucket() {
+Bucket::Bucket(unsigned int bucket_size) {
   blocks = *(new std::vector<Block>());
+  this->bucket_size = bucket_size;
 }
 
 bool Bucket::add_block(Block b) {

@@ -46,8 +46,10 @@ struct Cmd {
 
 class Node {
  public:
-  Node(int height, int path, Node *parent);
-  Node(int height) : Node(height, 0, NULL) {};
+  Node(int height, int path, Node *parent, unsigned int levels, unsigned int bucket_size);
+  Node(int height, unsigned int levels, unsigned int bucket_size) :
+    Node(height, 0, NULL, levels, bucket_size) {};
+  Node(int height) : Node(height, 0, NULL, L, BUCKET_SIZE) {};
   Node *l_child;
   Node *r_child;
   Node *parent;
@@ -62,11 +64,15 @@ struct BlockPtr {
 
 class ORAMClient {
  public:
-  ORAMClient(std::string server_ip, int port);
+  ORAMClient(std::string server_ip, int port, unsigned int levels, unsigned int bucket_size,
+	     unsigned int threshold);
+  ORAMClient(std::string server_ip, int port) : ORAMClient(server_ip, port, L, BUCKET_SIZE, STASH_THRESHOLD) {};
   int read(char *buf, unsigned int addr);
   void write(unsigned int addr, char data[BLOCK_SIZE]);
   void exit();
   void init_tree();
+  int stash_size();
+  int get_bw_usage();
  protected:
   void dump_stash(unsigned int leaf_idx); // interface with server to dump stash
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
@@ -87,11 +93,16 @@ class ORAMClient {
   std::map<unsigned int, unsigned int> mappings;
   std::list<Block> stash;
   int client_socket;
+  int num_server_rw;
+
+  int stash_threshold;
+  unsigned int levels, n_leaves, bucket_size;
 };
 
 class ORAMServer {
  public:
-  ORAMServer(uint16_t port);
+  ORAMServer(uint16_t port, unsigned int levels, unsigned int bucket_size);
+  ORAMServer(uint16_t port) : ORAMServer(port, L, BUCKET_SIZE) {};
 
   void run(); // run server, this should be the last thing called, or in another thread
  private:
@@ -104,6 +115,8 @@ class ORAMServer {
   void populate_tree();
   void populate_tree(Node *root);
   void clear_tree(Node *root); 
+
+  unsigned int levels, n_leaves, bucket_size;
 };
 
 #endif

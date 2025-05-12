@@ -135,13 +135,13 @@ void map_rand_test(int total_ops, int biggest_key) {
       }
       
       arr[1]++; 
-    } else if (store.find(tmp) != store.end() && choice % 4 == 2) { // remove
-      assert(store.find(tmp) != store.end());
-      std::cout<<"remove"<< tmp <<"\n"; 
-      store.erase(tmp);
-      client.remove(tmp);
-      q.push(tmp); 
-      arr[2]++; 
+    // } else if (store.find(tmp) != store.end() && choice % 4 == 2) { // remove
+    //   assert(store.find(tmp) != store.end());
+    //   std::cout<<"remove"<< tmp <<"\n"; 
+    //   store.erase(tmp);
+    //   client.remove(tmp);
+    //   q.push(tmp); 
+    //   arr[2]++; 
       
        
     } else if (choice % 4 == 3){ // contains

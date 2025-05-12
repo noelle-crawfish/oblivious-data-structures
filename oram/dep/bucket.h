@@ -28,10 +28,13 @@ void make_oram_block(Block &b, unsigned int nonce, unsigned int addr, unsigned i
 
 class Bucket {
  public:
-  Bucket();
+  Bucket(unsigned int bucket_size);
+  Bucket() : Bucket(BUCKET_SIZE) {};
   bool add_block(Block b);
   void clear();
- std::vector<Block> blocks;
+  std::vector<Block> blocks;
+
+  unsigned int bucket_size;
 };
 
 #endif

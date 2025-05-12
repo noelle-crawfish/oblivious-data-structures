@@ -14,7 +14,10 @@ struct AVLMetadata {
 template <typename V>
 class SetClient : public ORAMClient {
  public:
-  SetClient(std::string server_addr, int port);
+  SetClient(std::string server_addr, int port, unsigned int levels,
+	    unsigned int bucket_size, unsigned int threshold);
+  SetClient(std::string server_addr, int port) :
+    SetClient(server_addr, port, L, BUCKET_SIZE, STASH_THRESHOLD) {};
   void insert(V v);
   void remove(V v);
   bool contains(V v);

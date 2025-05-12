@@ -3,8 +3,10 @@
 template class MapClient<int, int>;
 
 template<typename K, typename V>
-MapClient<K, V>::MapClient(std::string server_addr, int port) :
-  SetClient<std::pair<K, V>>::SetClient(server_addr, port) {
+MapClient<K, V>::MapClient(std::string server_addr, int port, unsigned int levels,
+			   unsigned int bucket_size, unsigned int threshold) :
+			     SetClient<std::pair<K, V>>::SetClient(server_addr, port, levels,
+								   bucket_size, threshold) {
   // nop
 }
 

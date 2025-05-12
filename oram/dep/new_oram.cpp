@@ -20,15 +20,15 @@
 
 /* --------------------------------------------- */
 
-Node::Node(int height, int path, Node *parent) {
-  unsigned int leaf_idx = (unsigned int)path << (L-height);
-  this->bucket = new Bucket();
+Node::Node(int height, int path, Node *parent, unsigned int levels, unsigned int bucket_size) {
+  unsigned int leaf_idx = (unsigned int)path << (levels-height);
+  this->bucket = new Bucket(bucket_size);
 
   Block b;
   b.addr = 0;
   b.leaf_idx = leaf_idx;
   
-  for(int i = 0; i < BUCKET_SIZE; ++i) {
+  for(int i = 0; i < bucket_size; ++i) {
     bucket->blocks.push_back(b);
   }
 
@@ -37,14 +37,20 @@ Node::Node(int height, int path, Node *parent) {
   this->parent = parent;
 
   if(height != 0) {
-    this->l_child = new Node(height-1, (path << 1), this);
-    this->r_child = new Node(height-1, (path << 1) | 0x01, this);
+    this->l_child = new Node(height-1, (path << 1), this, levels, bucket_size);
+    this->r_child = new Node(height-1, (path << 1) | 0x01, this, levels, bucket_size);
   }
 }
 
 /* --------------------------------------------- */
 
-ORAMClient::ORAMClient(std::string server_ip, int port) {
+ORAMClient::ORAMClient(std::string server_ip, int port, unsigned int levels, unsigned int bucket_size,
+		       unsigned int threshold) {
+  this->levels = levels;
+  n_leaves = (2 << (levels-1));
+  this->bucket_size = bucket_size;
+  this->stash_threshold = threshold;
+
   // generate AES key
   key = new std::vector<unsigned char>(32); 
   iv = new std::vector<unsigned char>(16); 
@@ -148,8 +154,8 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
 
   // std::cout << "Dumping stash for leaf idx " << leaf_idx << ": before dump size = " << stash.size() << "\n";
 
-  for(int level = (L-1); level >= 0; --level) {
-    for(int i = 0; i < BUCKET_SIZE; ++i) {
+  for(int level = (levels-1); level >= 0; --level) {
+    for(int i = 0; i < bucket_size; ++i) {
       bool found_block = false;
       for(unsigned int j = 0; j < stash.size(); ++j) {
 	auto stash_at_j = stash.begin();
@@ -180,14 +186,14 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
 
 bool ORAMClient::on_path_at_level(unsigned int idx1, unsigned int idx2, int level) {
   // L is the bottom...
-  idx1 >>= (L - level - 1);
-  idx2 >>= (L - level - 1);
+  idx1 >>= (levels - level - 1);
+  idx2 >>= (levels - level - 1);
 
   return (idx1 == idx2);
 }
 
 unsigned int ORAMClient::random_leaf_idx() {
-  return std::rand() % N_LEAVES;
+  return std::rand() % n_leaves;
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
@@ -203,8 +209,8 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
   };
   trace();
   send(client_socket, (char*)(&cmd), sizeof(Cmd), 0);
-  for(int level = 0; level < L; ++level) {
-    for(int j = 0; j < BUCKET_SIZE; ++j) {
+  for(int level = 0; level < levels; ++level) {
+    for(int j = 0; j < bucket_size; ++j) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
       Block dec_b = decrypt_block(*b);
@@ -224,9 +230,9 @@ void ORAMClient::exit() {
 
 void ORAMClient::init_tree() {
   unsigned long num_buckets = 0; 
-  for(unsigned long i = 0; i < L; ++i) num_buckets += (1 << i); 
+  for(unsigned long i = 0; i < levels; ++i) num_buckets += (1 << i); 
 
-  unsigned long num_blocks = BUCKET_SIZE * num_buckets;
+  unsigned long num_blocks = bucket_size * num_buckets;
 
   Block tmp_block; 
   tmp_block.addr = 0;
@@ -344,7 +350,7 @@ void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
 }
 
 void ORAMClient::flush_stash() {
-  if(stash.size() > STASH_THRESHOLD) {
+  if(stash.size() > stash_threshold) {
     unsigned int leaf_idx = random_leaf_idx();
     get_blocks(leaf_idx);
     dump_stash(leaf_idx);
@@ -405,11 +411,23 @@ void ORAMClient::delete_block(BlockPtr b_ptr) {
   std::abort();
 }
 
+int ORAMClient::stash_size() {
+  return stash.size();
+}
+
+int ORAMClient::get_bw_usage() {
+  int num_buckets = 0; 
+  for(unsigned long i = 0; i < levels; ++i) num_buckets += (1 << i); 
+  int setup_cost = (bucket_size*levels*num_buckets + 1)*sizeof(Cmd);
+  return setup_cost + 2*(bucket_size*levels*num_server_rw+1)*sizeof(Cmd);
+}
 
 /* --------------------------------------------- */
 
-ORAMServer::ORAMServer(uint16_t port) {
-  root = new Node(L-1);
+ORAMServer::ORAMServer(uint16_t port, unsigned int levels, unsigned int bucket_size) {
+  this->levels = levels;
+  this->bucket_size = bucket_size;
+  root = new Node(levels-1, levels, bucket_size);
 
   int server_socket = socket(AF_INET, SOCK_STREAM, 0);
   sockaddr_in server_addr;
@@ -474,7 +492,7 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
 
   std::cout << "---------- STASH DUMP IDX " << leaf_idx << " ----------\n";
   while(curr != NULL) {
-    for(int i = 0; i < BUCKET_SIZE; ++i) {
+    for(int i = 0; i < bucket_size; ++i) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Cmd cmd = *(Cmd*)buf;
 
@@ -483,7 +501,7 @@ void ORAMServer::dump_stash(unsigned int leaf_idx) {
       std::cout << "(" << cmd.block.addr << ", " << cmd.block.leaf_idx << ") ";
     }
     std::cout << "\n";
-    assert(curr->bucket->blocks.size() == BUCKET_SIZE);
+    assert(curr->bucket->blocks.size() == bucket_size);
     curr = curr->parent;
  }
  std::cout << "-----------------------------------------------\n";
@@ -494,7 +512,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
   Node *curr = root;
   std::cout << "---------- GET BLOCKS IDX " << leaf_idx << " ----------\n";
   // while(curr != NULL) {
-  for(int i = L-1; i >= 0; --i) { // 2, 1, 0
+  for(int i = levels-1; i >= 0; --i) { // 2, 1, 0
     for(auto it = curr->bucket->blocks.begin(); it != curr->bucket->blocks.end(); ++it) {
       Cmd cmd = {
 	.opcode = BLOCK,
@@ -516,7 +534,7 @@ void ORAMServer::get_blocks(unsigned int leaf_idx) {
 
 Node* ORAMServer::get_leaf(unsigned int leaf_idx) {
   Node *curr = root;
-  for(int i = L-2; i >= 0; --i) {
+  for(int i = levels-2; i >= 0; --i) {
     std::cout << i << " ";
     if((leaf_idx & (0x01 << i)) == 0) {
       curr = curr->l_child;
@@ -542,7 +560,7 @@ void ORAMServer::populate_tree(Node *root) {
   Cmd cmd;
 
   // read blocks into current nodes bucket
-  for(int i = 0; i < BUCKET_SIZE; ++i) {
+  for(int i = 0; i < bucket_size; ++i) {
     int bytes = recv(client_socket, (char*)&cmd, sizeof(Cmd), 0);
     if(bytes <= 0) {
       std::cerr << "Read <= 0 bytes from client during initialization.\n";

@@ -9,7 +9,9 @@ template class SetClient<int>;
 template class SetClient<std::pair<int, int>>;
 
 template<typename V>
-SetClient<V>::SetClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
+SetClient<V>::SetClient(std::string server_addr, int port, unsigned int levels,
+			unsigned int bucket_size, unsigned int threshold) :
+			  ORAMClient(server_addr, port, levels, bucket_size, threshold) {
   root_addr = 0, root_leaf = 0;
   ctr = 0;
   entries = 0;
