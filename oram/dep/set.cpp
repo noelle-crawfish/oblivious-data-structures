@@ -332,45 +332,6 @@ BlockPtr SetClient<V>::min_node(BlockPtr b_ptr) {
 }
 
 template<typename V>
-Block* SetClient<V>::get_block(BlockPtr b_ptr) {
-  return get_block(b_ptr.addr, b_ptr.leaf_idx);
-}
-
-template<typename V>
-Block* SetClient<V>::get_block(unsigned int addr, unsigned int leaf_idx) {
-  if(addr == 0) return NULL;
-
-  // check stash
-  for(auto it = stash.begin(); it != stash.end(); ++it) {
-    if(it->addr == addr) {
-      it->in_use = true;
-      flush_stash();
-      return &(*it);
-    }
-  }
-
-  // check server
-  Block *b = NULL;
-  get_blocks(leaf_idx);
-  for(auto it = stash.begin(); it != stash.end(); ++it) {
-    if(it->addr == addr) {
-      it->in_use = true;
-      b = &(*it);
-      break;
-    }
-  }
-  dump_stash(leaf_idx);
-
-  if(b == NULL) { 
-    std::cerr << "Non-NULL block not found in stash or on server...\n";
-    std::abort();
-    return NULL;
-  }
-
-  return b;
-}
-
-template<typename V>
 AVLMetadata SetClient<V>::parse_metadata(char *buf) {
   AVLMetadata m;
   memcpy((char*)&m, buf, sizeof(AVLMetadata));

@@ -10,7 +10,7 @@
 #include "set.h"
 #include "map.h"
 
-#define N 10
+#define N 100
 
 void stack_test() {
   char data[BLOCK_SIZE];
@@ -61,7 +61,7 @@ void queue_test() {
 void set_test() {
   SetClient<int> client = SetClient<int>("127.0.0.1", 8080);
   for(int i = 1; i <= N; ++i) {
-    std::cout << i << " " << "\n";
+    std::cout << i << " ";
     client.insert(i);
   }
   std::cout << "\n";

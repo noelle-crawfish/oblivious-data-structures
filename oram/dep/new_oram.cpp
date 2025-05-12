@@ -155,7 +155,7 @@ void ORAMClient::dump_stash(unsigned int leaf_idx) {
 	auto stash_at_j = stash.begin();
 	std::advance(stash_at_j, j);
 	if(on_path_at_level(stash_at_j->leaf_idx, leaf_idx, level) && !stash_at_j->in_use) {
-	  // std::cout << "(" << stash[j].addr << ", " << stash[j].leaf_idx << ") dumped @ level " << level << "\n";
+	  // std::cout << "(" << stash_at_j->addr << ", " << stash_at_j->leaf_idx << ") dumped @ level " << level << "\n";
 	  cmd.block = *stash_at_j;
 	  cmd.block.nonce += 1;
 	  cmd.block = encrypt_block(cmd.block);
@@ -191,7 +191,7 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
-  flush_stash();
+  // flush_stash();
 
   char buf[sizeof(Cmd)];
 
@@ -207,7 +207,9 @@ void ORAMClient::get_blocks(unsigned int leaf_idx) {
     for(int j = 0; j < BUCKET_SIZE; ++j) {
       recv(client_socket, buf, sizeof(Cmd), 0);
       Block *b = &((Cmd*)buf)->block;
-      if(b->addr != 0) stash.push_back(decrypt_block(*b));
+      Block dec_b = decrypt_block(*b);
+      // if(b->addr != 0) stash.push_back(decrypt_block(*b));
+      if(dec_b.addr != 0) stash.push_back(dec_b);
     }
   }
 }
@@ -251,6 +253,8 @@ void ORAMClient::init_tree() {
 }
 
 Block ORAMClient::encrypt_block(Block b) {
+  // if(b.addr != 0) std::cout << "encrypt_block " << b.addr << ", " << b.leaf_idx << "\n";
+
   std::vector<unsigned char> plaintext((char*)&b, (char*)&b + sizeof(Block));
   std::vector<unsigned char> ciphertext;
 
@@ -328,6 +332,7 @@ Block ORAMClient::decrypt_block(Block b) {
   EVP_CIPHER_CTX_free(ctx);
 
   memcpy(&b, &(*plaintext.begin()), sizeof(Block));
+  // if(b.addr != 0) std::cout << "decrypt_block " << b.addr << ", " << b.leaf_idx << "\n";
   return b; 
 }
 
@@ -339,19 +344,67 @@ void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
 }
 
 void ORAMClient::flush_stash() {
-  // std::cout << "flush_stash(); -> " << stash.size() << " : " << STASH_THRESHOLD << "\n";
   if(stash.size() > STASH_THRESHOLD) {
-    unsigned int leaf_idx = (*stash.begin()).leaf_idx;
+    unsigned int leaf_idx = random_leaf_idx();
     get_blocks(leaf_idx);
     dump_stash(leaf_idx);
   }
-  // std::cout << "DONE!\n";
-
-  // if(stash.size() > STASH_THRESHOLD) {
-  //   std::cerr << "Could not flush stash\n";
-  //   std::abort();
-  // }
 }
+
+Block* ORAMClient::get_block(BlockPtr b_ptr) {
+  return get_block(b_ptr.addr, b_ptr.leaf_idx);
+}
+
+Block* ORAMClient::get_block(unsigned int addr, unsigned int leaf_idx) {
+  // std::cout << "(" << addr << ", " << leaf_idx << ")\n";
+  if(addr == 0) return NULL;
+
+  // check stash
+  for(auto it = stash.begin(); it != stash.end(); ++it) {
+    if(it->addr == addr) {
+      it->in_use = true;
+      flush_stash();
+      return &(*it);
+    }
+  }
+
+  // check server
+  Block *b = NULL;
+  get_blocks(leaf_idx);
+  for(auto it = stash.begin(); it != stash.end(); ++it) {
+    if(it->addr == addr) {
+      it->in_use = true;
+      b = &(*it);
+      break;
+    }
+  }
+  dump_stash(leaf_idx);
+
+  if(b == NULL) { 
+    std::cerr << "Non-NULL block not found in stash or on server...\n";
+    std::abort();
+    return NULL;
+  }
+
+  return b;
+}
+
+void ORAMClient::delete_block(unsigned int addr) {
+  delete_block(BlockPtr(addr, 0));
+}
+
+void ORAMClient::delete_block(BlockPtr b_ptr) {
+  for(auto it = stash.begin(); it != stash.end(); ++it) {
+    if(it->addr == b_ptr.addr) {
+      stash.erase(it, std::next(it));
+      return;
+    }
+  }
+
+  std::cerr << "delete_block(...) could not find block to delete.\n";
+  std::abort();
+}
+
 
 /* --------------------------------------------- */
 

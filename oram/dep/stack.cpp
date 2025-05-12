@@ -7,7 +7,6 @@ StackClient::StackClient(std::string server_ip, int port) : ORAMClient(server_ip
 
 void StackClient::push(char data[BLOCK_SIZE]) {
   unsigned int leaf_idx = random_leaf_idx();
-  get_blocks(leaf_idx);
 
   char metadata[METADATA_SIZE];
   memcpy(metadata, (char*)(&last_leaf), sizeof(unsigned int));
@@ -16,11 +15,11 @@ void StackClient::push(char data[BLOCK_SIZE]) {
   make_oram_block(new_block, 0, ++ctr, leaf_idx, data, metadata);
   stash.push_back(new_block);
   Block *b = &stash.back();
+  b->in_use = false;
 
-  last_leaf = b->leaf_idx;
+  last_leaf = leaf_idx;
 
-  // write blocks from the stash back to the path
-  dump_stash(leaf_idx);
+  flush_stash();
 }
 
 int StackClient::pop(char *buf) {
@@ -29,21 +28,14 @@ int StackClient::pop(char *buf) {
   }
 
   unsigned int leaf_idx = last_leaf;
-  get_blocks(leaf_idx);
+  Block *b = get_block(ctr, leaf_idx);
+  if(b->addr == 0) return 0;
+  else memcpy(buf, b->data, BLOCK_SIZE);
 
-  for(auto it = stash.begin(); it != stash.end(); ++it) {
-    // TODO need some decoding ot happen
-    if(it->addr == ctr) {
-      last_leaf = *(unsigned int*)(&(*it).metadata);
-      memcpy(buf, (*it).data, BLOCK_SIZE);
-      stash.erase(it, std::next(it));
-      break;
-    }
-  }
+  last_leaf = *(unsigned int*)(b->metadata);
 
-  dump_stash(leaf_idx);
   ctr--;
-
+  flush_stash();
   return BLOCK_SIZE;
 }
 

@@ -10,7 +10,6 @@ QueueClient::QueueClient(std::string server_addr, int port) : ORAMClient(server_
 
 void QueueClient::push(char data[BLOCK_SIZE]) {
   unsigned int leaf_idx = next_leaf;
-  get_blocks(leaf_idx);
 
   next_leaf = random_leaf_idx();
   char metadata[METADATA_SIZE];
@@ -18,10 +17,10 @@ void QueueClient::push(char data[BLOCK_SIZE]) {
 
   Block new_block;
   make_oram_block(new_block, 0, tail++, leaf_idx, data, metadata);
+  new_block.in_use = false;
   stash.push_back(new_block);
 
-  // write blocks from the stash back to the path
-  dump_stash(leaf_idx);
+  flush_stash();
 }
 
 int QueueClient::pop(char *buf) {
@@ -30,18 +29,13 @@ int QueueClient::pop(char *buf) {
   }
 
   unsigned int leaf_idx = front_leaf;
-  get_blocks(leaf_idx);
-  for(auto it = stash.begin(); it != stash.end(); ++it) {
-    if(it->addr == head) {
-      front_leaf = *(unsigned int*)(&(*it).metadata);
-      memcpy(buf, (*it).data, BLOCK_SIZE);
-      stash.erase(it, std::next(it));
-      break;
-    }
-  }
 
-  dump_stash(leaf_idx);
+  Block *b = get_block(head, leaf_idx);
+  front_leaf = *(unsigned int*)(b->metadata);
+  memcpy(buf, b->data, BLOCK_SIZE);
+
+  delete_block(b->addr);
   head++;
-
+  flush_stash();
   return BLOCK_SIZE;
 }

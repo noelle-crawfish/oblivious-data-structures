@@ -11,11 +11,6 @@ struct AVLMetadata {
   int height;
 };
 
-struct BlockPtr {
-  unsigned int addr;
-  unsigned int leaf_idx;
-};
-
 template <typename V>
 class SetClient : public ORAMClient {
  public:
@@ -36,9 +31,6 @@ class SetClient : public ORAMClient {
   int get_balance(BlockPtr b_ptr);
   BlockPtr min_node(BlockPtr b_ptr);
   virtual int compare_value(V v1, V v2);
-
-  Block* get_block(BlockPtr b_ptr);
-  Block* get_block(unsigned int addr, unsigned int leaf_idx);
 
   AVLMetadata parse_metadata(char *buf);
   void serialize_metadata(char *buf, AVLMetadata m);

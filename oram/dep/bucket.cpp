@@ -17,7 +17,7 @@ void Bucket::clear() {
   blocks.erase(blocks.begin(), blocks.end());
 }
 
-void make_oram_block(Block b, unsigned int nonce, unsigned int addr, unsigned int leaf_idx,
+void make_oram_block(Block &b, unsigned int nonce, unsigned int addr, unsigned int leaf_idx,
 		      char data[BLOCK_SIZE], char metadata[METADATA_SIZE]) {
   b.nonce = nonce;
   b.addr = addr;

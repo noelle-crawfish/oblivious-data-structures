@@ -46,7 +46,7 @@ V MapClient<K, V>::at(K k) {
     std::abort();
   }
 
-  Block *b = SetClient<std::pair<K, V>>::get_block(b_ptr);
+  Block *b = ORAMClient::get_block(b_ptr);
   V v = ((std::pair<K, V>*)(b->data))->second;
   for(auto it = this->stash.begin(); it != this->stash.end(); ++it) (*it).in_use = false;
   return v;

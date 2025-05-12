@@ -23,10 +23,10 @@
 
 #include "bucket.h"
 
-#define L 4
+#define L 3
 #define N_LEAVES (2 << (L-1) )
 
-#define STASH_THRESHOLD 5
+#define STASH_THRESHOLD 30
 
 // 16 bytes = 128 bits -> std for AES
 
@@ -54,6 +54,12 @@ class Node {
   Bucket *bucket;
 };
 
+struct BlockPtr {
+  unsigned int addr;
+  unsigned int leaf_idx;
+};
+
+
 class ORAMClient {
  public:
   ORAMClient(std::string server_ip, int port);
@@ -70,6 +76,11 @@ class ORAMClient {
   Block decrypt_block(Block b);
   void fill_random_data(char *buf, unsigned int num_bytes);
   void flush_stash();
+
+  Block* get_block(BlockPtr b_ptr);
+  Block* get_block(unsigned int addr, unsigned int leaf_idx);
+  void delete_block(BlockPtr b_ptr);
+  void delete_block(unsigned int addr);
 
   std::vector<unsigned char> *key;
   std::vector<unsigned char> *iv;
