@@ -25,3 +25,12 @@ bw_usage = -1853313016
 Testing L = 3, Z = 8, THRES = 32 ---------------
 max_stash_size = 63
 bw_usage = -1853313016
+Testing L = 3, Z = 16, THRES = 8 ---------------
+max_stash_size = 67
+bw_usage = -1853313016
+Testing L = 3, Z = 16, THRES = 16 ---------------
+max_stash_size = 69
+bw_usage = -1853313016
+Testing L = 3, Z = 16, THRES = 32 ---------------
+max_stash_size = 67
+bw_usage = -1853313016
