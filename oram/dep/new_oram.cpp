@@ -58,7 +58,6 @@ ORAMClient::ORAMClient(std::string server_ip, int port, unsigned int levels, uns
   RAND_bytes(key->data(), key->size());
   RAND_bytes(iv->data(), iv->size());
 
-  std::cout << server_ip << "\n";
   client_socket = socket(AF_INET, SOCK_STREAM, 0);
 
   sockaddr_in server_addr;
@@ -429,7 +428,7 @@ ORAMServer::ORAMServer(uint16_t port, unsigned int levels, unsigned int bucket_s
   this->bucket_size = bucket_size;
   root = new Node(levels-1, levels, bucket_size);
 
-  int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+  server_socket = socket(AF_INET, SOCK_STREAM, 0);
   sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(port);
@@ -475,6 +474,7 @@ void ORAMServer::run() {
       case EXIT:
 	done = true;
         close(client_socket);
+	close(server_socket);
       default:
 	break;
       }

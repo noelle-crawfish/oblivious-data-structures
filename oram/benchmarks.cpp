@@ -1,12 +1,12 @@
 
 #include <set>
 
+#include "benchmarks.h"
+
 #include "stack.h"
 #include "queue.h"
 #include "set.h"
 #include "map.h"
-
-#define N 100
 
 void stack_benchmark() {
   char data[BLOCK_SIZE];
@@ -46,40 +46,42 @@ void queue_benchmark() {
 }
 
 void avl_benchmark() {
-  unsigned int bucket_size = 8;
-  unsigned int threshold = 16;
+  for(auto level_it = levels.begin(); level_it != levels.end(); ++level_it) {
+    for(auto bucket_size_it = bucket_sizes.begin(); bucket_size_it != bucket_sizes.end(); ++bucket_size_it) {
+      for(auto thresh_it = stash_thresholds.begin(); thresh_it != stash_thresholds.end(); ++thresh_it) {
+	std::cout << "Testing L = " << *level_it << ", Z = " << *bucket_size_it << ", THRES = " << *thresh_it << std::string(15, '-') << "\n";
+	int max_stash_size = 0;
+	MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080,
+							 *level_it, *bucket_size_it, *thresh_it);
 
-  for(unsigned int levels = 2; levels < 4; ++levels) {
-    std::cout << "Testing L = " << levels << std::string(15, '-') << "\n";
-    int max_stash_size = 0;
-    MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080, levels, bucket_size, threshold);
+	for(int i = 1; i <= N; ++i) {
+	  client.insert(i, 5*i);
+	  max_stash_size = std::max(max_stash_size, client.stash_size());
+	}
 
-    for(int i = 1; i <= N; ++i) {
-	client.insert(i, 5*i);
+	client.contains(2);
 	max_stash_size = std::max(max_stash_size, client.stash_size());
-    }
-
-    client.contains(2);
-    max_stash_size = std::max(max_stash_size, client.stash_size());
-    client.remove(2);
-    max_stash_size = std::max(max_stash_size, client.stash_size());
-    client.contains(2);
-    max_stash_size = std::max(max_stash_size, client.stash_size());
-
-    for(int i = 1; i <= N; ++i) {
-	if(i != 2) client.at(i);
+	client.remove(2);
 	max_stash_size = std::max(max_stash_size, client.stash_size());
-    }
-
-    for(int i = 1; i <= N; ++i) {
-	if(i != 2) client.remove(i);
+	client.contains(2);
 	max_stash_size = std::max(max_stash_size, client.stash_size());
+	
+	for(int i = 1; i <= N; ++i) {
+	  if(i != 2) client.at(i);
+	  max_stash_size = std::max(max_stash_size, client.stash_size());
+	}
+
+	for(int i = 1; i <= N; ++i) {
+	  if(i != 2) client.remove(i);
+	  max_stash_size = std::max(max_stash_size, client.stash_size());
+	}
+	
+	std::cout << "max_stash_size = " << max_stash_size << "\n";
+	std::cout << "bw_usage = " << client.get_bw_usage() << "\n";
+	
+	client.exit();
+      }
     }
-
-    std::cout << "max_stash_size = " << max_stash_size << "\n";
-    std::cout << "bw_usage = " << client.get_bw_usage() << "\n";
-
-    client.exit();
   }
 }
 

@@ -164,7 +164,6 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
       b_ptr.leaf_idx = min_ptr.leaf_idx;
 
       V v = *(V*)(min_node->data);
-      std::cout << v << "\n";
       BlockPtr new_right = remove(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       b_meta.r_child_addr = new_right.addr;
       b_meta.r_child_leaf = new_right.leaf_idx;

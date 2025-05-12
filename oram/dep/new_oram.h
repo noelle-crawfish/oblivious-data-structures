@@ -107,7 +107,7 @@ class ORAMServer {
   void run(); // run server, this should be the last thing called, or in another thread
  private:
   Node *root;
-  int client_socket;
+  int server_socket, client_socket;
 
   void dump_stash(unsigned int leaf_idx); // receive client dump stash request and refill buckets
   void get_blocks(unsigned int leaf_idx);

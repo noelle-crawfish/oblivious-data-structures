@@ -3,18 +3,19 @@
 #include <chrono>
 #include <thread>
 
+#include "benchmarks.h"
 #include "new_oram.h"
 
 int main() {
-  unsigned int bucket_size = 8;
-  for(unsigned int levels = 2; levels < 4; ++levels) {
-    std::cout << "Re-connecting\n";
-    ORAMServer server = ORAMServer(8080, levels, bucket_size);
-
-    server.run();
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+  for(auto level_it = levels.begin(); level_it != levels.end(); ++level_it) {
+    for(auto bucket_size_it = bucket_sizes.begin(); bucket_size_it != bucket_sizes.end(); ++bucket_size_it) {
+      for(auto thresh_it = stash_thresholds.begin(); thresh_it != stash_thresholds.end(); ++thresh_it) {
+	// stash_threshold doesn't matter to server, it's just a repetition
+	ORAMServer server = ORAMServer(8080, *level_it, *bucket_size_it); 
+	server.run();
+	std::this_thread::sleep_for(std::chrono::seconds(1)); // client likes to connect first idk why
+      }
+    }
   }
-
   return 0;
 }
