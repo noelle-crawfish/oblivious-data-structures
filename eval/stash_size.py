@@ -8,21 +8,22 @@ def avg_stash_size():
 def max_stash_size(data): # maybe max stash size vs. threshold? 
     fig, ax = plt.subplots()
 
-    threshold = 8
-    Z = 8
+    # threshold = 32
+    Z = 8 
+    L = 4
 
-    x_var = data[0].keys()
+    x_var = data[0][L][Z].keys()
 
     # threshold value
-    ax.plot([min(x_var), max(x_var)], [70, 70], '--', color=ref_line_color)
+    ax.plot([min(x_var), max(x_var)], [min(x_var), max(x_var)], '--', color=ref_line_color)
 
     for i, d in enumerate(data):
-        y_var = [d[x][Z][threshold].max_stash_size for x in x_var]    
+        y_var = [d[L][Z][x].max_stash_size for x in x_var]    
         ax.plot(x_var, y_var, '.-', color=colors[i], label=list(labels.values())[i])
 
-    ax.set_xlabel("Path ORAM Height (L)")
+    ax.set_xlabel("Stash Eviction Trigger Threshold")
     ax.set_ylabel("Max. Stash Size")
-    ax.set_title(f"Max. Stash Size vs. Path ORAM Height\nZ={Z}, threshold={threshold}")
+    ax.set_title(f"Max. Stash Size vs. Eviction Threshold") # \nZ={Z}, threshold={threshold}")
     ax.legend()
 
     fig.savefig("max_stash_size.png")

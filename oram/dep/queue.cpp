@@ -3,7 +3,9 @@
 
 #include "queue.h"
 
-QueueClient::QueueClient(std::string server_addr, int port) : ORAMClient(server_addr, port) {
+QueueClient::QueueClient(std::string server_addr, int port,
+			 unsigned int levels, unsigned int bucket_size, unsigned int threshold) :
+			   ORAMClient(server_addr, port, levels, bucket_size, threshold) {
   head = tail = 1; // head = next to pop, tail = next to add -> 0 addr is reserved
   front_leaf = next_leaf = 0;
 }

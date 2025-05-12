@@ -33,6 +33,12 @@ def parse_logfile(filename: str) -> dict[dict[dict[DataPoint]]]:
 
             init_dict_idx(config['L'], config['Z'], config['thresh'])
             data[config['L']][config['Z']][config['thresh']] = DataPoint(max_stash_size, 0, bw_usage)
+
+        data = dict(sorted(data.items()))
+        for L in data:
+            data[L] = dict(sorted(data[L].items()))
+            for Z in data:
+                data[L][Z] = dict(sorted(data[L][Z].items()))
     return data
 
 colors = [
@@ -45,7 +51,14 @@ colors = [
 ref_line_color = '#ab859b'
 
 labels = {
+    "stack": "Stack",
+    "queue": "Queue",
     "avl": "AVL Tree (Map/Set)",
 }
+
+levels = [4]
+# bucket_sizes = [2, 4, 8]
+bucket_sizes = [8]
+thresholds = [4, 8, 16, 32, 64, 70, 80, 90, 100, 128]
 
 linestyles = ['.-', '.--', '.-.', '.:']

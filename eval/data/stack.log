@@ -1,0 +1,9 @@
+Testing L = 4, Z = 8, THRES = 4
+max_stash_size = 100
+bw_usage = -1030444216
+Testing L = 4, Z = 8, THRES = 8
+max_stash_size = 100
+bw_usage = -1043223736
+Testing L = 4, Z = 8, THRES = 16
+max_stash_size = 100
+bw_usage = -1036035256

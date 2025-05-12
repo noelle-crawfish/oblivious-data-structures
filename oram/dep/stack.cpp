@@ -1,6 +1,8 @@
 #include "stack.h"
 
-StackClient::StackClient(std::string server_ip, int port) : ORAMClient(server_ip, port) {
+StackClient::StackClient(std::string server_ip, int port,
+			 unsigned int levels, unsigned int bucket_size, unsigned int threshold) :
+			   ORAMClient(server_ip, port, levels, bucket_size, threshold) {
   ctr = 0;
   last_leaf = 0;
 }
