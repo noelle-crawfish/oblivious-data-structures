@@ -1,7 +1,8 @@
 # Compiler and flags
 CXX = g++ -g
-CXXFLAGS = -std=c++23 -Wall -Wextra -g -I./dep -lcrypto
-DEBUGFLAGS = -std=c++23 -Wall -Wextra -g -I./dep -lcrypto
+CXXFLAGS = -std=c++23 -Wall -Wextra -g -I./dep 
+DEBUGFLAGS = -std=c++23 -Wall -Wextra -g -I./dep 
+LDFLAGS = -lcrypto
 # Files
 # SRC = main.cpp 
 HDR = $(shell find $(PWD)/dep -name '*.h')
@@ -12,22 +13,29 @@ TARGET = oram
 # Default rule
 all: client server benchmarks
 
-debugclient: $(OBJ)
-	$(CXX) $(DEBUGFLAGS) client.cpp -o client $^ 
-debugserver: $(OBJ)
-	$(CXX) $(DEBUGFLAGS) server.cpp -o server $^ 
+debugclient: $(OBJ) client.o
+	$(CXX) $(DEBUGFLAGS) $(OBJ) client.o -o client $(LDFLAGS)
+
+debugserver: $(OBJ) server.o
+	$(CXX) $(DEBUGFLAGS) $(OBJ) server.o -o server $(LDFLAGS)
+
+debugbenchmarks: $(OBJ) benchmarks.o
+	$(CXX) $(DEBUGFLAGS) $(OBJ) benchmarks.o -o benchmarks $(LDFLAGS)
+
+
 # Linking
 $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) main.cpp -o $@ $^
 
 client: $(OBJ) client.o
-	$(CXX) $(CXXFLAGS) -o client $^
+	$(CXX) $(CXXFLAGS) $(OBJ) client.o -o client $(LDFLAGS)
 
 server: $(OBJ) server.o
-	$(CXX) $(CXXFLAGS) -o server $^
+	$(CXX) $(CXXFLAGS) $(OBJ) server.o -o server $(LDFLAGS)
 
 benchmarks: $(OBJ) benchmarks.o
-	$(CXX) $(CXXFLAGS) -o benchmarks $^
+	$(CXX) $(CXXFLAGS) $(OBJ) benchmarks.o -o benchmarks $(LDFLAGS)
+
 
 # Compiling
 %.o: %.cpp 
