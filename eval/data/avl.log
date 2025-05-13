@@ -121,3 +121,15 @@ bw_usage = 753480
 Testing L = 4, Z = 8, THRES = 128
 max_stash_size = 100
 bw_usage = 753480
+Testing L = 2, Z = 8, THRES = 70
+max_stash_size = 76
+bw_usage = 79560
+Testing L = 3, Z = 8, THRES = 70
+max_stash_size = 70
+bw_usage = 266760
+Testing L = 5, Z = 8, THRES = 70
+max_stash_size = 70
+bw_usage = 1939080
+Testing L = 6, Z = 8, THRES = 70
+max_stash_size = 70
+bw_usage = 4722120

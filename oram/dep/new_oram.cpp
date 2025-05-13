@@ -51,6 +51,8 @@ ORAMClient::ORAMClient(std::string server_ip, int port, unsigned int levels, uns
   this->bucket_size = bucket_size;
   this->stash_threshold = threshold;
 
+  num_server_rw = 0;
+
   // generate AES key
   key = new std::vector<unsigned char>(32); 
   iv = new std::vector<unsigned char>(16); 
@@ -140,6 +142,8 @@ void ORAMClient::write(unsigned int addr, char data[BLOCK_SIZE]) {
 void ORAMClient::dump_stash(unsigned int leaf_idx) {
   // char buf[sizeof(Cmd)];
   trace();
+
+  num_server_rw += 1;
 
   Cmd cmd = {
     .opcode = DUMP_STASH,
@@ -417,8 +421,8 @@ int ORAMClient::stash_size() {
 int ORAMClient::get_bw_usage() {
   int num_buckets = 0; 
   for(unsigned long i = 0; i < levels; ++i) num_buckets += (1 << i); 
-  int setup_cost = (bucket_size*levels*num_buckets + 1)*sizeof(Cmd);
-  return setup_cost + 2*(bucket_size*levels*num_server_rw+1)*sizeof(Cmd);
+  int setup_cost = (bucket_size*levels*num_buckets + 1);
+  return setup_cost + 2*(bucket_size*levels*num_server_rw+1);
 }
 
 /* --------------------------------------------- */

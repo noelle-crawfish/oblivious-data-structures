@@ -46,7 +46,6 @@ void queue_benchmark(unsigned int levels, unsigned int bucket_size, unsigned int
     client.push(data);
     max_stash_size = std::max(max_stash_size, client.stash_size());
   }
-  std::cout << "\n\n";
 
   for(int i = 1; i <= N; ++i) {
     client.pop(data);
