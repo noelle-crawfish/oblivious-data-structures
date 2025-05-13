@@ -22,7 +22,7 @@ def bw_vs_bucket_size(data):
     ax.plot(x_var, [(2*L*x)+setup_cost*x for x in x_var], '--', color=ref_line_color)
 
     for i, d in enumerate(data):
-        y_var = [(d[L][x][threshold].bw_usage / d[L][x][threshold].rw_ops) for x in x_var]    
+        y_var = [((d[L][x][threshold].bw_usage + setup_cost) / d[L][x][threshold].rw_ops) for x in x_var]    
         ax.plot(x_var, y_var, '.-', color=colors[i], label=list(labels.values())[i])
 
     ax.set_xlabel("Bucket Capacity (ORAM Blocks)")
@@ -46,7 +46,7 @@ def bw_vs_height(data):
     ax.plot(x_var, [(2*x*Z) + sc*Z for sc, x in zip(x_var, setup_cost)], '--', color=ref_line_color)
 
     for i, d in enumerate(data):
-        y_var = [d[x][Z][threshold].bw_usage / d[x][Z][threshold].rw_ops for x in x_var]    
+        y_var = [(d[x][Z][threshold].bw_usage+sc) / d[x][Z][threshold].rw_ops for sc, x in enumerate(x_var)]    
         ax.plot(x_var, y_var, '.-', color=colors[i], label=list(labels.values())[i])
 
     ax.set_xlabel("Height of Path ORAM Tree")

@@ -29,6 +29,7 @@ void stack_benchmark(unsigned int levels, unsigned int bucket_size, unsigned int
 
   std::cout << "max_stash_size = " << max_stash_size << "\n";
   std::cout << "bw_usage = " << client.get_bw_usage() << "\n";
+  std::cout << "rw_ops = " << client.get_rw_ops() << "\n";
 
   client.exit();
 }
@@ -54,6 +55,7 @@ void queue_benchmark(unsigned int levels, unsigned int bucket_size, unsigned int
 
   std::cout << "max_stash_size = " << max_stash_size << "\n";
   std::cout << "bw_usage = " << client.get_bw_usage() << "\n";
+  std::cout << "rw_ops = " << client.get_rw_ops() << "\n";
 
   client.exit();
 }
@@ -87,6 +89,7 @@ void avl_benchmark(unsigned int levels, unsigned int bucket_size, unsigned int t
   
   std::cout << "max_stash_size = " << max_stash_size << "\n";
   std::cout << "bw_usage = " << client.get_bw_usage() << "\n";
+  std::cout << "rw_ops = " << client.get_rw_ops() << "\n";
 
   client.exit();
 }
