@@ -131,7 +131,6 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
 
 template<typename V>
 BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
-  std::cout<<"removing";
   if(b_ptr.addr == 0) {
     std::cerr << "Could not find value to remove.\n";
     std::abort();
@@ -142,7 +141,6 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
 
   V b_v = *(V*)(b->data);
   if(compare_value(v, b_v) < 0) {
-    // std::cout << "left_addr: " << b_meta.l_child_addr << "\n";
     BlockPtr new_left = remove(v, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
@@ -175,7 +173,6 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
       b_ptr.leaf_idx = min_ptr.leaf_idx;
 
       V v = *(V*)(min_node->data);
-      std::cout <<"\n minptr:" <<v <<"\n"; 
       BlockPtr new_right = remove(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       b_meta.r_child_addr = new_right.addr;
       b_meta.r_child_leaf = new_right.leaf_idx;
@@ -347,7 +344,6 @@ void SetClient<V>::serialize_metadata(char *buf, AVLMetadata m) {
 template<typename V>
 void SetClient<V>::prefix_print() {
   prefix_print(BlockPtr(root_addr, root_leaf));
-  std::cout << "\n";
   for(auto it = stash.begin(); it != stash.end(); ++it) (*it).in_use = false;
 }
 
@@ -358,8 +354,6 @@ void SetClient<V>::prefix_print(BlockPtr b_ptr) {
   }
 
   Block *b = get_block(b_ptr);
-  std::cout << *(V*)(b->data) << " ";
-  // std::cout << "X";
 
   AVLMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
   prefix_print(BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf)); // left

@@ -238,7 +238,6 @@ void ORAMClient::init_tree() {
   for(unsigned long i = 0; i < levels; ++i) num_buckets += (1 << i); 
   
   unsigned long num_blocks = bucket_size * num_buckets;
-  std::cout<<"\n" << num_blocks<<"\n";
   Block tmp_block; 
   tmp_block.addr = 0;
 
@@ -265,7 +264,6 @@ void ORAMClient::init_tree() {
 
 Block ORAMClient::encrypt_block(Block b) {
   // if(b.addr != 0) std::cout << "encrypt_block " << b.addr << ", " << b.leaf_idx << "\n";
-  return b;
   std::vector<unsigned char> plaintext((char*)&b, (char*)&b + sizeof(Block));
   std::vector<unsigned char> ciphertext;
 
@@ -295,7 +293,6 @@ Block ORAMClient::encrypt_block(Block b) {
   }
   ciphertext_len += len;
 
-  // std::cout << ciphertext_len << " " << sizeof(Block) << "\n";
   ciphertext.resize(ciphertext_len);
 
   EVP_CIPHER_CTX_free(ctx); 
@@ -305,7 +302,6 @@ Block ORAMClient::encrypt_block(Block b) {
 }
 
 Block ORAMClient::decrypt_block(Block b) {
-  return b;
   std::vector<unsigned char> ciphertext((char*)&b, (char*)&b + sizeof(Block));
   std::vector<unsigned char> plaintext;
 
@@ -344,7 +340,6 @@ Block ORAMClient::decrypt_block(Block b) {
   EVP_CIPHER_CTX_free(ctx);
 
   memcpy(&b, &(*plaintext.begin()), sizeof(Block));
-  // if(b.addr != 0) std::cout << "decrypt_block " << b.addr << ", " << b.leaf_idx << "\n";
   return b; 
 }
 
@@ -368,7 +363,6 @@ Block* ORAMClient::get_block(BlockPtr b_ptr) {
 }
 
 Block* ORAMClient::get_block(unsigned int addr, unsigned int leaf_idx) {
-  // std::cout << "(" << addr << ", " << leaf_idx << ")\n";
   if(addr == 0) return NULL;
 
   // check stash
@@ -464,7 +458,6 @@ void ORAMServer::run() {
   while(!done) {
     char buf[sizeof(Cmd)];
     int bytes = recv(client_socket, buf, sizeof(Cmd), 0);
-    std::cout << bytes; 
     if (bytes == 0) {
       return; 
     }

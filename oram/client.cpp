@@ -11,7 +11,6 @@
 #include "queue.h"
 #include "set.h"
 #include "map.h"
-#include "ref_avl.h"
 #define N 100
 
 void stack_test() {
@@ -137,7 +136,6 @@ void map_rand_test(int total_ops, int biggest_key) {
       arr[0]++; 
       
     } else if (choice % 4 == 1 && store.find(tmp) != store.end()) { // at 
-      // std::cout<<"at"<< tmp <<"\n"; 
       if (store[tmp] != client.at(tmp)) {
         std::cout <<"values arent correct \n";
       }
@@ -145,7 +143,6 @@ void map_rand_test(int total_ops, int biggest_key) {
       arr[1]++; 
     } else if (store.find(tmp) != store.end() && choice % 4 == 2) { // remove
       assert(store.find(tmp) != store.end());
-      std::cout<<"remove"<< tmp <<"\n"; 
       store.erase(tmp);
       client.remove(tmp);
       q.push(tmp); 
@@ -183,32 +180,22 @@ void simple_map() {
 
 void troll(int total_ops, int biggest_key) {
   MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
-  ref_avl ref_tree = ref_avl(); 
   std::queue<int> q; 
   std::unordered_map<int, int> store; 
   for (int i = 0; i < biggest_key; ++i){
     q.push(i); 
   }
-  std::cout <<"\n"; 
   for (int i = 0; i < total_ops; ++i) {
     int choice = std::rand();
     int tmp = rand() % biggest_key; 
     if (choice % 2 == 0 && !q.empty()) { // insert
       int idx = q.front();
-      // std::cout<<"insert"<< idx <<","<< tmp<< "\n" ; 
       
       store[idx] = tmp; 
       client.insert(idx, tmp);
       q.pop();
-      ref_tree.insert(idx); 
-      std::cout << "----------------insert ref--------------------\n"; 
-      ref_tree.prefix_print(); 
-       std::cout<<"\n";
-      std::cout << "----------------insert client--------------------\n"; 
       client.prefix_print(); 
-      std::cout<<"\n";
     }  else if (store.find(tmp) != store.end() && choice % 2 == 1) { // remove
-      std::cout<<"remove "<< tmp <<"\n"; 
       auto it = store.find(tmp);
       if (it == store.end()) {
           std::cerr << "Not found in store!\n";
@@ -219,10 +206,8 @@ void troll(int total_ops, int biggest_key) {
 
       std::cout << "store erased \n";
       client.remove(tmp);
-      ref_tree.remove(tmp); 
       q.push(tmp); 
       std::cout << "----------------remove ref--------------------\n"; 
-      ref_tree.prefix_print(); 
       std::cout<<"\n";
       std::cout << "----------------remove client--------------------\n"; 
       client.prefix_print(); 

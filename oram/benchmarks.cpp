@@ -6,7 +6,7 @@
 #include "set.h"
 #include "map.h"
 
-#define N 100
+#define N 1000
 
 void stack_benchmark(unsigned int levels, unsigned int bucket_size, unsigned int threshold) {
   std::cout << "Testing L = " << levels << ", Z = " << bucket_size << ", THRES = " << threshold << "\n";
