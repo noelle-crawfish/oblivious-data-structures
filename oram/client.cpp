@@ -11,7 +11,7 @@
 #include "queue.h"
 #include "set.h"
 #include "map.h"
-
+#include "ref_avl.h"
 #define N 100
 
 void stack_test() {
@@ -129,7 +129,7 @@ void map_rand_test(int total_ops, int biggest_key) {
     int tmp = rand() % biggest_key; 
     if (choice % 4 == 0 && !q.empty()) { // insert
       int idx = q.front();
-      std::cout<<"insert"<< idx <<","<< tmp<< "\n" ; 
+      // std::cout<<"insert"<< idx <<","<< tmp<< "\n" ; 
       
       store[idx] = tmp; 
       client.insert(idx, tmp);
@@ -137,7 +137,7 @@ void map_rand_test(int total_ops, int biggest_key) {
       arr[0]++; 
       
     } else if (choice % 4 == 1 && store.find(tmp) != store.end()) { // at 
-      std::cout<<"at"<< tmp <<"\n"; 
+      // std::cout<<"at"<< tmp <<"\n"; 
       if (store[tmp] != client.at(tmp)) {
         std::cout <<"values arent correct \n";
       }
@@ -152,8 +152,8 @@ void map_rand_test(int total_ops, int biggest_key) {
       arr[2]++; 
       
        
-    } else if (choice % 4 == 3){ // contains
-      std::cout<<"contains"<< tmp <<"\n"; 
+    } else { // contains
+      // std::cout<<"contains"<< tmp <<"\n"; 
       if (store.find(tmp) == store.end()) {
         if (client.contains(tmp)) {
           std::cout <<"contains found nonexisting\n"; 
@@ -167,8 +167,9 @@ void map_rand_test(int total_ops, int biggest_key) {
   std::cout << "graceful exit\n "; 
   std::cout << " inserts: " <<arr[0]; 
   std::cout << " ats: " <<arr[1]; 
-  std::cout << " contains: " <<arr[2]; 
-  std::cout << " removes: " <<arr[3]; 
+  std::cout << " contains: " <<arr[3]; 
+  std::cout << " removes: " <<arr[2]; 
+  std::cout << "\n";
   client.exit();
 }
 void simple_map() {
@@ -177,6 +178,57 @@ void simple_map() {
   client.contains(1);
   client.insert(1,4); 
   client.at(1);
+  client.exit();
+}
+
+void troll(int total_ops, int biggest_key) {
+  MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
+  ref_avl ref_tree = ref_avl(); 
+  std::queue<int> q; 
+  std::unordered_map<int, int> store; 
+  for (int i = 0; i < biggest_key; ++i){
+    q.push(i); 
+  }
+  std::cout <<"\n"; 
+  for (int i = 0; i < total_ops; ++i) {
+    int choice = std::rand();
+    int tmp = rand() % biggest_key; 
+    if (choice % 2 == 0 && !q.empty()) { // insert
+      int idx = q.front();
+      // std::cout<<"insert"<< idx <<","<< tmp<< "\n" ; 
+      
+      store[idx] = tmp; 
+      client.insert(idx, tmp);
+      q.pop();
+      ref_tree.insert(idx); 
+      std::cout << "----------------insert ref--------------------\n"; 
+      ref_tree.prefix_print(); 
+       std::cout<<"\n";
+      std::cout << "----------------insert client--------------------\n"; 
+      client.prefix_print(); 
+      std::cout<<"\n";
+    }  else if (store.find(tmp) != store.end() && choice % 2 == 1) { // remove
+      std::cout<<"remove "<< tmp <<"\n"; 
+      auto it = store.find(tmp);
+      if (it == store.end()) {
+          std::cerr << "Not found in store!\n";
+      } else {
+          std::cout << "Found, erasing: " << tmp << "\n";
+          store.erase(it); // Prefer this over erase(tmp) if unsure about key validity
+      }
+
+      std::cout << "store erased \n";
+      client.remove(tmp);
+      ref_tree.remove(tmp); 
+      q.push(tmp); 
+      std::cout << "----------------remove ref--------------------\n"; 
+      ref_tree.prefix_print(); 
+      std::cout<<"\n";
+      std::cout << "----------------remove client--------------------\n"; 
+      client.prefix_print(); 
+      std::cout<<"\n";
+    } 
+  }
   client.exit();
 }
 int main(int argc, char* argv[]) {
@@ -191,10 +243,11 @@ int main(int argc, char* argv[]) {
   else if(strcmp(ds, "queue") == 0) queue_test();
   else if(strcmp(ds, "map") == 0) map_test();
   else if(strcmp(ds, "set") == 0) set_test();
-  else if(strcmp(ds, "map_rand") == 0) map_rand_test(50000, 10);
+  else if(strcmp(ds, "map_rand") == 0) map_rand_test(1000, 50);
   else if(strcmp(ds, "simple_map") == 0) simple_map();
+  else if(strcmp(ds, "troll") == 0) troll(1000, 20);
   else {
-    std::cout << "Bad data structure. Choose one of: stack, queue, map, set.\n";
+    std::cout << "Bad data structure. Choose one of: stack, queue, map, set, map_rand, simple_map, troll.\n";
     return -1;
   }
 

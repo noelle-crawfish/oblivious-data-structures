@@ -82,10 +82,12 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
     BlockPtr new_left = insert(v, BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf));
     b_meta.l_child_addr = new_left.addr;
     b_meta.l_child_leaf = new_left.leaf_idx;
+    serialize_metadata(b->metadata, b_meta);
   } else if(compare_value(v, b_v) > 0) {
     BlockPtr new_right = insert(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
     b_meta.r_child_addr = new_right.addr;
     b_meta.r_child_leaf = new_right.leaf_idx;
+    serialize_metadata(b->metadata, b_meta);
   } else {
     std::cerr << "Value already exists in tree\n";
     std::abort();
@@ -100,9 +102,8 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
   serialize_metadata(b->metadata, b_meta);
-
   int balance = b_left_height - b_right_height;
-
+  
   if(balance > 1 && compare_value(v, b_v) < 0) {
     return right_rotate(b_ptr);
   } else if(balance < -1 && compare_value(v, b_v) > 0) {
@@ -130,6 +131,7 @@ BlockPtr SetClient<V>::insert(V v, BlockPtr b_ptr) {
 
 template<typename V>
 BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
+  std::cout<<"removing";
   if(b_ptr.addr == 0) {
     std::cerr << "Could not find value to remove.\n";
     std::abort();
@@ -153,17 +155,27 @@ BlockPtr SetClient<V>::remove(V v, BlockPtr b_ptr) {
     if(b_meta.l_child_addr == 0) {
       b_ptr.addr = b_meta.r_child_addr;
       b_ptr.leaf_idx = b_meta.r_child_leaf;
+      if (b_ptr.addr != 0) {
+        b = get_block(b_ptr);
+        b_meta = parse_metadata(b->metadata);
+      }
+      
     } else if(b_meta.r_child_addr == 0) {
       b_ptr.addr = b_meta.l_child_addr;
       b_ptr.leaf_idx = b_meta.l_child_leaf;
+      if (b_ptr.addr != 0) {
+        b = get_block(b_ptr);
+        b_meta = parse_metadata(b->metadata);
+      }
     } else {
       BlockPtr min_ptr = min_node(BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       Block *min_node = get_block(min_ptr);
-
+      
       b_ptr.addr = min_ptr.addr;
       b_ptr.leaf_idx = min_ptr.leaf_idx;
 
       V v = *(V*)(min_node->data);
+      std::cout <<"\n minptr:" <<v <<"\n"; 
       BlockPtr new_right = remove(v, BlockPtr(b_meta.r_child_addr, b_meta.r_child_leaf));
       b_meta.r_child_addr = new_right.addr;
       b_meta.r_child_leaf = new_right.leaf_idx;
@@ -237,6 +249,8 @@ BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
   new_root_meta.r_child_addr = b_ptr.addr; // new root's right child is the old root
   new_root_meta.r_child_leaf = b_ptr.leaf_idx;
 
+  serialize_metadata(b->metadata, b_meta);
+  serialize_metadata(new_root->metadata, new_root_meta);
   // update heights
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
@@ -245,18 +259,10 @@ BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
-  AVLMetadata null_metadata = {
-    .l_child_leaf = 0,
-    .l_child_addr = 0,
-    .r_child_leaf = 0,
-    .r_child_addr = 0,
-    .height = 0,
-  };
   
-  AVLMetadata new_root_left_meta =
-    (b_right == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.l_child_addr,
-							     new_root_meta.l_child_leaf)->metadata);
-  new_root_meta.height = 1 + std::max(new_root_left_meta.height, b_meta.height);
+  b_left = get_block(new_root_meta.l_child_addr, new_root_meta.l_child_leaf);
+  b_left_height = (b_left == NULL) ? 0 : parse_metadata(b_left->metadata).height;
+  new_root_meta.height = 1 + std::max(b_left_height, b_meta.height);
 
   serialize_metadata(b->metadata, b_meta);
   serialize_metadata(new_root->metadata, new_root_meta);
@@ -278,6 +284,8 @@ BlockPtr SetClient<V>::left_rotate(BlockPtr b_ptr) {
   new_root_meta.l_child_addr = b_ptr.addr; // new root's left child is the old root
   new_root_meta.l_child_leaf = b_ptr.leaf_idx;
 
+  serialize_metadata(b->metadata, b_meta);
+  serialize_metadata(new_root->metadata, new_root_meta);
   // update heights
   Block *b_left = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
   Block *b_right = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
@@ -286,18 +294,10 @@ BlockPtr SetClient<V>::left_rotate(BlockPtr b_ptr) {
   int b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
   b_meta.height = 1 + std::max(b_left_height, b_right_height);
 
-  AVLMetadata null_metadata = {
-    .l_child_leaf = 0,
-    .l_child_addr = 0,
-    .r_child_leaf = 0,
-    .r_child_addr = 0,
-    .height = 0,
-  };
-  
-  AVLMetadata new_root_right_meta =
-    (b_right == NULL) ? null_metadata : parse_metadata(get_block(new_root_meta.r_child_addr,
-							     new_root_meta.r_child_leaf)->metadata);
-  new_root_meta.height = 1 + std::max(b_meta.height, new_root_right_meta.height);
+
+  b_right = get_block(new_root_meta.r_child_addr, new_root_meta.r_child_leaf);
+  b_right_height = (b_right == NULL) ? 0 : parse_metadata(b_right->metadata).height;
+  new_root_meta.height = 1 + std::max(b_meta.height, b_right_height);
 
   serialize_metadata(b->metadata, b_meta);
   serialize_metadata(new_root->metadata, new_root_meta);
@@ -325,8 +325,8 @@ BlockPtr SetClient<V>::min_node(BlockPtr b_ptr) {
   Block *b = get_block(b_ptr);
   AVLMetadata b_meta = parse_metadata(b->metadata);
 
-  while(b_meta.r_child_addr != 0) {
-    b = get_block(b_meta.r_child_addr, b_meta.r_child_leaf);
+  while(b_meta.l_child_addr != 0) {
+    b = get_block(b_meta.l_child_addr, b_meta.l_child_leaf);
     b_meta = parse_metadata(b->metadata);
   }
   return BlockPtr(b->addr, b->leaf_idx);
@@ -357,9 +357,9 @@ void SetClient<V>::prefix_print(BlockPtr b_ptr) {
     return;
   }
 
-  // Block *b = get_block(b_ptr);
-  // std::cout << *(V*)(b->data) << " ";
-  std::cout << "X";
+  Block *b = get_block(b_ptr);
+  std::cout << *(V*)(b->data) << " ";
+  // std::cout << "X";
 
   AVLMetadata b_meta = parse_metadata(get_block(b_ptr)->metadata);
   prefix_print(BlockPtr(b_meta.l_child_addr, b_meta.l_child_leaf)); // left
