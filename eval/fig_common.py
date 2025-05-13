@@ -60,9 +60,9 @@ labels = {
 
 levels = [2, 3, 4, 5, 6]
 # levels = [4]
-# bucket_sizes = [2, 4, 8]
-bucket_sizes = [8]
-# thresholds = [4, 8, 16, 32, 64, 70, 80, 90, 100, 128]
-thresholds = [70]
+bucket_sizes = [2, 4, 8]
+# bucket_sizes = [8]
+thresholds = [4, 8, 16, 32, 64, 70, 80, 90, 100, 128]
+# thresholds = [70]
 
 linestyles = ['.-', '.--', '.-.', '.:']

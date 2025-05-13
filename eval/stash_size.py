@@ -12,7 +12,7 @@ def max_stash_size(data): # maybe max stash size vs. threshold?
     Z = 8 
     L = 4
 
-    x_var = data[0][L][Z].keys()
+    x_var = thresholds
 
     # threshold value
     ax.plot([min(x_var), max(x_var)], [min(x_var), max(x_var)], '--', color=ref_line_color)
