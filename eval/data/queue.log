@@ -1,42 +1,28 @@
-Testing L = 4, Z = 8, THRES = 4
-max_stash_size = 50
-bw_usage = -1046618296
-Testing L = 4, Z = 8, THRES = 8
-max_stash_size = 50
-bw_usage = -1040727736
-Testing L = 4, Z = 8, THRES = 16
-max_stash_size = 38
-bw_usage = -1024353976
-Testing L = 4, Z = 8, THRES = 32
-max_stash_size = 41
-bw_usage = -1024453816
-Testing L = 4, Z = 8, THRES = 64
-max_stash_size = 64
-bw_usage = -1040727736
+Testing L = 4, Z = 2, THRES = 70
+max_stash_size = 71
+bw_usage = 987
+rw_ops = 54
+Testing L = 4, Z = 4, THRES = 70
+max_stash_size = 72
+bw_usage = 2163
+rw_ops = 60
 Testing L = 4, Z = 8, THRES = 70
 max_stash_size = 70
-bw_usage = -1047017656
-Testing L = 4, Z = 8, THRES = 80
-max_stash_size = 80
-bw_usage = -1024953016
-Testing L = 4, Z = 8, THRES = 90
-max_stash_size = 90
-bw_usage = -1043123896
-Testing L = 4, Z = 8, THRES = 100
-max_stash_size = 100
-bw_usage = -1044222136
-Testing L = 4, Z = 8, THRES = 128
-max_stash_size = 100
-bw_usage = -1042524856
+bw_usage = 5027
+rw_ops = 71
 Testing L = 2, Z = 8, THRES = 70
 max_stash_size = 76
-bw_usage = 1623477960
+bw_usage = 1779
+rw_ops = 54
 Testing L = 3, Z = 8, THRES = 70
 max_stash_size = 70
-bw_usage = -1847921656
+bw_usage = 2475
+rw_ops = 48
 Testing L = 5, Z = 8, THRES = 70
 max_stash_size = 70
-bw_usage = -233034616
+bw_usage = 6203
+rw_ops = 62
 Testing L = 6, Z = 8, THRES = 70
 max_stash_size = 70
-bw_usage = 604660424
+bw_usage = 8307
+rw_ops = 55

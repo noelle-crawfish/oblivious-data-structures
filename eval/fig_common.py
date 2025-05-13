@@ -1,9 +1,10 @@
 
 class DataPoint:
-    def __init__(self, max_stash_size, avg_stash_size, bw_usage):
+    def __init__(self, max_stash_size, avg_stash_size, bw_usage, rw_ops):
         self.max_stash_size = max_stash_size
         self.avg_stash_size = avg_stash_size
         self.bw_usage = bw_usage
+        self.rw_ops = rw_ops
 
 def parse_config(config_print: str) -> dict:
     config = {}
@@ -22,7 +23,7 @@ def parse_logfile(filename: str) -> dict[dict[dict[DataPoint]]]:
         if j not in data[i].keys():
             data[i][j] = {}
 
-    num_data_points = 2
+    num_data_points = 3
     with open(filename, 'r') as f:
         contents = f.readlines()
         contents = [contents[i:i+num_data_points+1] for i in range(0, len(contents), num_data_points+1)]
@@ -30,9 +31,10 @@ def parse_logfile(filename: str) -> dict[dict[dict[DataPoint]]]:
             config = parse_config(dp[0])
             max_stash_size = int(dp[1].split(' ')[2])
             bw_usage = int(dp[2].split(' ')[2])
+            rw_ops = int(dp[3].split(' ')[2])
 
             init_dict_idx(config['L'], config['Z'], config['thresh'])
-            data[config['L']][config['Z']][config['thresh']] = DataPoint(max_stash_size, 0, bw_usage)
+            data[config['L']][config['Z']][config['thresh']] = DataPoint(max_stash_size, 0, bw_usage, rw_ops)
 
         data = dict(sorted(data.items()))
         for L in data:
@@ -51,8 +53,8 @@ colors = [
 ref_line_color = '#ab859b'
 
 labels = {
-    # "stack": "Stack",
-    # "queue": "Queue",
+    "stack": "Stack",
+    "queue": "Queue",
     "avl": "AVL Tree (Map/Set)",
 }
 
