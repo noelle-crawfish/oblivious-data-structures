@@ -230,9 +230,9 @@ void ORAMClient::exit() {
 void ORAMClient::init_tree() {
   unsigned long num_buckets = 0; 
   for(unsigned long i = 0; i < levels; ++i) num_buckets += (1 << i); 
-
+  
   unsigned long num_blocks = bucket_size * num_buckets;
-
+  std::cout<<"\n" << num_blocks<<"\n";
   Block tmp_block; 
   tmp_block.addr = 0;
 
@@ -259,7 +259,7 @@ void ORAMClient::init_tree() {
 
 Block ORAMClient::encrypt_block(Block b) {
   // if(b.addr != 0) std::cout << "encrypt_block " << b.addr << ", " << b.leaf_idx << "\n";
-
+  return b;
   std::vector<unsigned char> plaintext((char*)&b, (char*)&b + sizeof(Block));
   std::vector<unsigned char> ciphertext;
 
@@ -299,6 +299,7 @@ Block ORAMClient::encrypt_block(Block b) {
 }
 
 Block ORAMClient::decrypt_block(Block b) {
+  return b;
   std::vector<unsigned char> ciphertext((char*)&b, (char*)&b + sizeof(Block));
   std::vector<unsigned char> plaintext;
 
