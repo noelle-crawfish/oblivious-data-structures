@@ -27,6 +27,7 @@ def max_stash_size(data): # maybe max stash size vs. threshold?
     ax.legend()
 
     fig.savefig("max_stash_size.png")
+    fig.savefig("max_stash_size.pdf")
 
 
 if __name__=="__main__":

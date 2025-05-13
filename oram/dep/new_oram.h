@@ -73,6 +73,7 @@ class ORAMClient {
   void init_tree();
   int stash_size();
   int get_bw_usage();
+  int get_rw_ops();
  protected:
   void dump_stash(unsigned int leaf_idx); // interface with server to dump stash
   bool on_path_at_level(unsigned int idx1, unsigned int idx2, int level);
@@ -93,7 +94,7 @@ class ORAMClient {
   std::map<unsigned int, unsigned int> mappings;
   std::list<Block> stash;
   int client_socket;
-  int num_server_rw;
+  int num_server_rw, num_client_rw;
 
   int stash_threshold;
   unsigned int levels, n_leaves, bucket_size;

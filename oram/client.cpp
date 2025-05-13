@@ -108,7 +108,14 @@ void map_test() {
 void map_rand_test(int total_ops, int biggest_key) {
 
   std::unordered_map<int, int> store = std::unordered_map<int, int>(); 
-  MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);
+  MapClient<int, int> client = MapClient<int, int>("127.0.0.1", 8080);    // } else if (store.find(tmp) != store.end() && choice % 4 == 2) { // remove
+    //   assert(store.find(tmp) != store.end());
+    //   std::cout<<"remove"<< tmp <<"\n"; 
+    //   store.erase(tmp);
+    //   client.remove(tmp);
+    //   q.push(tmp); 
+    //   arr[2]++; 
+
 
   int choice;
   std::queue<int> q; 
@@ -136,13 +143,13 @@ void map_rand_test(int total_ops, int biggest_key) {
       }
       
       arr[1]++; 
-    // } else if (store.find(tmp) != store.end() && choice % 4 == 2) { // remove
-    //   assert(store.find(tmp) != store.end());
-    //   std::cout<<"remove"<< tmp <<"\n"; 
-    //   store.erase(tmp);
-    //   client.remove(tmp);
-    //   q.push(tmp); 
-    //   arr[2]++; 
+    } else if (store.find(tmp) != store.end() && choice % 4 == 2) { // remove
+      assert(store.find(tmp) != store.end());
+      std::cout<<"remove"<< tmp <<"\n"; 
+      store.erase(tmp);
+      client.remove(tmp);
+      q.push(tmp); 
+      arr[2]++; 
       
        
     } else if (choice % 4 == 3){ // contains

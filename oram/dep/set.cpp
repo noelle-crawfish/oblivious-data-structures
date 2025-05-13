@@ -232,7 +232,7 @@ BlockPtr SetClient<V>::right_rotate(BlockPtr b_ptr) {
   AVLMetadata new_root_meta = parse_metadata(new_root->metadata);
 
   b_meta.l_child_addr = new_root_meta.r_child_addr; // replace new root w/ it's right child in old root
-  b_meta.l_child_leaf = new_root_meta.l_child_addr;
+  b_meta.l_child_leaf = new_root_meta.r_child_leaf;
 
   new_root_meta.r_child_addr = b_ptr.addr; // new root's right child is the old root
   new_root_meta.r_child_leaf = b_ptr.leaf_idx;

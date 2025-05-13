@@ -20,7 +20,6 @@ void StackClient::push(char data[BLOCK_SIZE]) {
   b->in_use = false;
 
   last_leaf = leaf_idx;
-
   flush_stash();
 }
 
@@ -36,6 +35,7 @@ int StackClient::pop(char *buf) {
 
   last_leaf = *(unsigned int*)(b->metadata);
 
+  delete_block(b->addr);
   ctr--;
   flush_stash();
   return BLOCK_SIZE;
