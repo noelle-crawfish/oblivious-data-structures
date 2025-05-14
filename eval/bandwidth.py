@@ -33,13 +33,40 @@ def bw_vs_bucket_size(data):
     fig.savefig("bw_vs_bucket_size.png")
     fig.savefig("bw_vs_bucket_size.pdf")
 
+def bw_vs_stash_size(data):
+    fig, ax = plt.subplots()
+
+    Z = 8 
+    L = 4 
+
+    x_var = thresholds
+
+    setup_cost = 0
+    for i in range(L):
+        setup_cost += (1 << i)
+
+    # threshold value
+    ax.plot(x_var, [(2*L*Z) + setup_cost*Z for x in x_var], '--', color=ref_line_color)
+
+    for i, d in enumerate(data):
+        y_var = [(d[L][Z][x].bw_usage+setup_cost) / d[L][Z][x].rw_ops for x in x_var]    
+        ax.plot(x_var, y_var, '.-', color=colors[i], label=list(labels.values())[i])
+
+    ax.set_xlabel("Stash Eviction Threshold")
+    ax.set_ylabel("Ratio of Total Bytes to Useful Bytes R/W")
+    ax.set_title(f"BW Ratio vs. Stash Eviction Threshold") # \nZ={Z}, threshold={threshold}")
+    ax.legend()
+
+    fig.savefig("bw_vs_stash.png")
+    fig.savefig("bw_vs_stash.pdf")
+
 def bw_vs_height(data):
     fig, ax = plt.subplots()
 
-    threshold = 70
+    threshold = 32
     Z = 8 
 
-    x_var = levels
+    x_var = levels 
 
     setup_cost = [sum([1 << i for i in range(L)]) for L in x_var]
     # threshold value
@@ -64,4 +91,5 @@ if __name__=="__main__":
 
     bw_vs_bucket_size(data)
     bw_vs_height(data)
+    bw_vs_stash_size(data)
     

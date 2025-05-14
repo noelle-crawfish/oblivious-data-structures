@@ -201,9 +201,6 @@ unsigned int ORAMClient::random_leaf_idx() {
 }
 
 void ORAMClient::get_blocks(unsigned int leaf_idx) {
-  num_client_rw += 1;
-  // flush_stash();
-
   char buf[sizeof(Cmd)];
 
   Block null_block;
@@ -351,7 +348,13 @@ void ORAMClient::fill_random_data(char *buf, unsigned int num_bytes) {
 }
 
 void ORAMClient::flush_stash() {
-  if(stash.size() > stash_threshold) {
+  for(int i = 0; i < 3; ++i) {
+    if(stash.size() < stash_threshold) break;
+    
+    bool has_eviction_canidates = false;
+    for(auto it = stash.begin(); it != stash.end(); ++it) if(!(it->in_use)) has_eviction_canidates = true;
+    if(!has_eviction_canidates) break; // if everything is in use we can't do anything #sorrynotsorry
+
     unsigned int leaf_idx = random_leaf_idx();
     get_blocks(leaf_idx);
     dump_stash(leaf_idx);
@@ -364,6 +367,7 @@ Block* ORAMClient::get_block(BlockPtr b_ptr) {
 
 Block* ORAMClient::get_block(unsigned int addr, unsigned int leaf_idx) {
   if(addr == 0) return NULL;
+  num_client_rw += 1;
 
   // check stash
   for(auto it = stash.begin(); it != stash.end(); ++it) {
